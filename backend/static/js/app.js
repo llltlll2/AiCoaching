@@ -175,13 +175,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // Save to Pomodoro History
             const subject = document.getElementById('pomodoro-subject').value;
             try {
+                const categoryVal = document.getElementById('task-category') ? document.getElementById('task-category').value : '学習';
                 await fetch('/api/study_coaching_hub', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         phase: 'save_pomodoro',
                         subject: subject,
-                        duration: elapsedMinutes
+                        duration: elapsedMinutes,
+                        category: categoryVal
                     })
                 });
             } catch (e) {
@@ -825,6 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const date = new Date().toISOString().split('T')[0];
 
         try {
+            const categoryVal = document.getElementById('task-category') ? document.getElementById('task-category').value : '学習';
             const res = await fetch('/api/study_coaching_hub', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -836,6 +839,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     memo: memoText,
                     study_time: totalStudyTimeMinutes,
                     progress_volume: prog,
+                    category: categoryVal,
                     speaker_id: localStorage.getItem('speaker_id') || 47,
                     system_prompt: localStorage.getItem('system_prompt') || ''
                 })
