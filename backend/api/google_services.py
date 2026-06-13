@@ -61,7 +61,17 @@ def get_past_subjects(spreadsheet_id):
         sh = client.open_by_key(spreadsheet_id)
         subjects = set()
         
-        # 1. 日々の記録履歴から取得
+        # 1. 学習予定資格から取得 (新仕様: 親オブジェクト)
+        try:
+            sheet_plan = sh.worksheet("学習予定資格")
+            col_plan = sheet_plan.col_values(1)
+            for val in col_plan[1:]:
+                if val.strip():
+                    subjects.add(val.strip())
+        except Exception:
+            pass
+            
+        # 2. 互換性のため過去の日々の記録履歴からも取得
         try:
             sheet_daily = sh.worksheet("日々の記録履歴")
             col_daily = sheet_daily.col_values(2)
@@ -71,19 +81,44 @@ def get_past_subjects(spreadsheet_id):
         except Exception:
             pass
             
-        # 2. 学習カレンダーから推奨学習テーマを取得
-        try:
-            sheet_cal = sh.worksheet("学習カレンダー")
-            col_cal = sheet_cal.col_values(2)
-            for val in col_cal[1:]:
-                if val.strip():
-                    subjects.add(val.strip())
-        except Exception:
-            pass
-            
         return list(subjects)
     except Exception as e:
         print(f"Failed to fetch past subjects: {e}")
+        return []
+
+def get_personalities(spreadsheet_id):
+    """
+    AIコーチ設定シートから性格のリストを取得する
+    """
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(spreadsheet_id)
+        try:
+            sheet = sh.worksheet("AIコーチ設定")
+        except gspread.exceptions.WorksheetNotFound:
+            sheet = sh.add_worksheet(title="AIコーチ設定", rows="100", cols="5")
+            sheet.append_row(["性格名", "プロンプト", "デフォルト音声ID"])
+            # デフォルト設定を追加
+            default_prompt = "あなたは優秀な学習伴走コーチ「ファウスト」です。二人称は『管理人』としてください。すぐ正解を教えず、自発的な気づきを促す段階的なヒントや問いかけを行ってください。"
+            sheet.append_row(["デフォルト（ファウスト）", default_prompt, 47])
+            sheet.append_row(["厳格なスパルタコーチ", "あなたは学習者を厳しく鍛え上げるスパルタコーチです。一切の甘えを許さず、厳しい言葉でモチベーションを煽ります。敬語は使いません。", 11])
+            sheet.append_row(["優しいお姉さん", "あなたは学習者を優しく包み込むお姉さんです。「〜だね」「〜してね」といった柔らかい口調で、学習者を常に褒めて励まします。", 8])
+            return [{"name": "デフォルト（ファウスト）", "prompt": default_prompt, "voice_id": 47}, 
+                    {"name": "厳格なスパルタコーチ", "prompt": "あなたは学習者を厳しく鍛え上げるスパルタコーチです。一切の甘えを許さず、厳しい言葉でモチベーションを煽ります。敬語は使いません。", "voice_id": 11},
+                    {"name": "優しいお姉さん", "prompt": "あなたは学習者を優しく包み込むお姉さんです。「〜だね」「〜してね」といった柔らかい口調で、学習者を常に褒めて励まします。", "voice_id": 8}]
+            
+        records = sheet.get_all_records()
+        personalities = []
+        for r in records:
+            if str(r.get("性格名", "")).strip():
+                personalities.append({
+                    "name": str(r.get("性格名", "")).strip(),
+                    "prompt": str(r.get("プロンプト", "")).strip(),
+                    "voice_id": str(r.get("デフォルト音声ID", "")).strip() or "47"
+                })
+        return personalities
+    except Exception as e:
+        print(f"Failed to fetch personalities: {e}")
         return []
 
 def get_past_contents(spreadsheet_id):
@@ -261,12 +296,28 @@ def append_pomodoro_record(spreadsheet_id, date_time, subject, duration_minutes)
 
 def write_roadmap(spreadsheet_id, target, milestones):
     """
-    生成されたロードマップを学習カレンダーシートに保存する
-    ※既存の同目標資格のデータがある場合は削除して上書きし、他の資格データは残す
+    生成されたロードマップを「学習予定資格」および「学習カレンダー」シートに保存する
     """
     client = get_gspread_client()
     sh = client.open_by_key(spreadsheet_id)
+    import datetime
+    now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
+    # 1. 学習予定資格（親）に登録
+    try:
+        plan_sheet = sh.worksheet("学習予定資格")
+    except gspread.WorksheetNotFound:
+        plan_sheet = sh.add_worksheet(title="学習予定資格", rows="100", cols="5")
+        plan_sheet.append_row(["目標資格", "登録日時"])
+        
+    try:
+        plan_records = plan_sheet.col_values(1)
+        if target not in plan_records:
+            plan_sheet.append_row([target, now_str])
+    except Exception as e:
+        print("Failed to update 学習予定資格:", e)
+    
+    # 2. 学習カレンダー（子）に週ごとの詳細を登録
     try:
         worksheet = sh.worksheet("学習カレンダー")
     except gspread.WorksheetNotFound:

@@ -9,11 +9,67 @@ document.addEventListener('DOMContentLoaded', () => {
     faustAudio.volume = volumeSlider ? parseFloat(volumeSlider.value) : 0.5;
 
     const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const speakerSelect = document.getElementById('speaker-select');
+    const personalitySelect = document.getElementById('personality-select');
+    const volumeSlider = document.getElementById('volume-slider');
+
+    // 起動時に性格一覧を取得
+    async function loadPersonalities() {
+        try {
+            const res = await fetch('/api/study_coaching_hub', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ phase: 'get_personalities' })
+            });
+            const data = await res.json();
+            if (data.status === 'success' && personalitySelect) {
+                personalitySelect.innerHTML = '';
+                data.personalities.forEach((p, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = p.prompt;
+                    opt.textContent = p.name;
+                    opt.dataset.voice = p.voice_id;
+                    personalitySelect.appendChild(opt);
+                });
+                
+                // 復元
+                const savedPrompt = localStorage.getItem('system_prompt');
+                if (savedPrompt) {
+                    personalitySelect.value = savedPrompt;
+                } else if (personalitySelect.options.length > 0) {
+                    personalitySelect.selectedIndex = 0;
+                    localStorage.setItem('system_prompt', personalitySelect.value);
+                }
+            }
+        } catch (e) {
+            console.error('Failed to load personalities', e);
+        }
+    }
+    loadPersonalities();
+
+    if (personalitySelect) {
+        personalitySelect.addEventListener('change', (e) => {
+            const selectedOpt = e.target.options[e.target.selectedIndex];
+            localStorage.setItem('system_prompt', selectedOpt.value);
+            if (speakerSelect && selectedOpt.dataset.voice) {
+                speakerSelect.value = selectedOpt.dataset.voice;
+                localStorage.setItem('speaker_id', selectedOpt.dataset.voice);
+            }
+        });
+    }
+
     if (saveSettingsBtn) {
         saveSettingsBtn.addEventListener('click', () => {
-            localStorage.setItem('speaker_id', speakerSelect.value);
-            localStorage.setItem('faust_volume', volumeSlider.value);
-            faustAudio.volume = parseFloat(volumeSlider.value);
+            if (personalitySelect) {
+                localStorage.setItem('system_prompt', personalitySelect.value);
+            }
+            if (speakerSelect) {
+                localStorage.setItem('speaker_id', speakerSelect.value);
+            }
+            if (volumeSlider) {
+                localStorage.setItem('faust_volume', volumeSlider.value);
+                faustAudio.volume = parseFloat(volumeSlider.value);
+            }
             alert('設定を保存しました。');
         });
     }
@@ -479,7 +535,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     qualification: qual, 
                     duration_months: parseInt(dur), 
                     syllabus: syllabus,
-                    constraints: constraints
+                    constraints: constraints,
+                    system_prompt: localStorage.getItem('system_prompt') || ''
                 })
             });
             const data = await res.json();
@@ -569,7 +626,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         phase: 'consult_plan',
                         qualification: qual,
                         query: query,
-                        speaker_id: localStorage.getItem('speaker_id') || 47
+                        speaker_id: localStorage.getItem('speaker_id') || 47,
+                        system_prompt: localStorage.getItem('system_prompt') || ''
                     })
                 });
                 const data = await res.json();
@@ -667,7 +725,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     memo: memoText,
                     study_time: totalStudyTimeMinutes,
                     progress_volume: prog,
-                    speaker_id: localStorage.getItem('speaker_id') || 47
+                    speaker_id: localStorage.getItem('speaker_id') || 47,
+                    system_prompt: localStorage.getItem('system_prompt') || ''
                 })
             });
             const data = await res.json();
@@ -721,7 +780,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch('/api/study_coaching_hub', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ phase: 'generate_quiz', target: targetVal, quiz_format: qFormat, weakness_mode: false })
+                body: JSON.stringify({ 
+                    phase: 'generate_quiz', 
+                    target: targetVal, 
+                    quiz_format: qFormat, 
+                    weakness_mode: false,
+                    system_prompt: localStorage.getItem('system_prompt') || ''
+                })
             });
             const data = await res.json();
             if (data.status === 'success') {
@@ -768,7 +833,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch('/api/study_coaching_hub', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ phase: 'generate_quiz', target: targetVal, quiz_format: qFormat, weakness_mode: true })
+                    body: JSON.stringify({ 
+                        phase: 'generate_quiz', 
+                        target: targetVal, 
+                        quiz_format: qFormat, 
+                        weakness_mode: true,
+                        system_prompt: localStorage.getItem('system_prompt') || ''
+                    })
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
@@ -823,7 +894,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     quiz_format: qFormat,
                     glossary: currentQuizGlossary,
                     user_answer: answer,
-                    speaker_id: localStorage.getItem('speaker_id') || 47
+                    speaker_id: localStorage.getItem('speaker_id') || 47,
+                    system_prompt: localStorage.getItem('system_prompt') || ''
                 })
             });
             const data = await res.json();

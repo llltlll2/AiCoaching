@@ -161,10 +161,9 @@ def study_coaching_hub(request):
             history_text = "\n".join([f"過去の相談({c['date']}): {c['query']}\nAI回答: {c['response']}" for c in past_consultations[-5:]])
             roadmap_text = "\n".join([f"第{r['week']}週: {r['topic']} (目標: {r['target_progress_percent']}%, {r['recommended_hours']})" for r in roadmap])
             
-            system_instruction = (
-                "あなたは優秀な学習コンサルタント「ファウスト」です。ユーザーからの学習計画に関する相談に乗ります。"
-                "必要であれば過去の相談履歴や現在のロードマップを踏まえて、具体的な日程調整や学習方法のフィードバックを行ってください。"
-                "必ず以下のJSON構造のみを出力してください。\n"
+            base_prompt = payload.get("system_prompt", "あなたは優秀な学習コンサルタントです。ユーザーからの学習計画に関する相談に乗ります。必要であれば過去の相談履歴や現在のロードマップを踏まえて、具体的な日程調整や学習方法のフィードバックを行ってください。")
+            system_instruction = base_prompt + (
+                "\n\n必ず以下のJSON構造のみを出力してください。\n"
                 "{\n"
                 "  \"advice\": \"ユーザーへのアドバイスやフィードバック本文\"\n"
                 "}"
@@ -200,13 +199,11 @@ def study_coaching_hub(request):
             progress = payload.get("progress_volume")
             memo = payload.get("memo", "")
             
-            # システムプロンプト（NotebookLM的挙動の再現）
-            system_instruction = (
-                "あなたは優秀な学習伴走コーチ「ファウスト」です。二人称は『管理人』としてください。"
-                "すぐ正解を教えず、自発的な気づきを促す段階的なヒントや問いかけを行ってください。"
-                "もしユーザーからの『学習メモ・悩み』がある場合は、それに対するアドバイスや共感の言葉も含めてください。"
+            base_prompt = payload.get("system_prompt", "あなたは優秀な学習伴走コーチです。すぐ正解を教えず、自発的な気づきを促す段階的なヒントや問いかけを行ってください。")
+            system_instruction = base_prompt + (
+                "\n\nもしユーザーからの『学習メモ・悩み』がある場合は、それに対するアドバイスや共感の言葉も含めてください。"
                 "出力は必ず以下のJSON構造を厳守してください。Markdownブロックは不要です。\n"
-                "出力例: {\"daily_rating\": \"B\", \"progress_status\": \"delayed_light\", \"coaching_comment\": \"管理人、...\"}"
+                "出力例: {\"daily_rating\": \"B\", \"progress_status\": \"delayed_light\", \"coaching_comment\": \"フィードバック本文...\"}"
             )
             
             # File APIを利用して教材を読み込み
@@ -271,8 +268,9 @@ def study_coaching_hub(request):
                     return JsonResponse({"status": "error", "message": "弱点データが見つかりませんでした。通常の小テストを実施してください。"})
                 # 弱点からランダムに1問選ぶなど（ここではプロンプトに弱点リストを含めて再構成させる）
                 weakness_text = "\n".join([f"Q: {w['question']}" for w in weaknesses[:3]])
-                system_instruction = (
-                    "あなたは優秀な学習チューターです。以下の過去に間違えた問題（弱点）をベースに、似たような問題を再出題してください。"
+                base_prompt = payload.get("system_prompt", "あなたは優秀な学習チューターです。")
+                system_instruction = base_prompt + (
+                    "\n\n以下の過去に間違えた問題（弱点）をベースに、似たような問題を再出題してください。"
                     "必ず以下のJSON構造のみを出力してください。Markdownブロックは不要です。\n"
                     "{\n"
                     "  \"glossary\": [{\"term\": \"弱点用語1\", \"definition\": \"解説1\"}],\n"
@@ -282,8 +280,9 @@ def study_coaching_hub(request):
                 prompt = f"目標資格: {target}\n過去の弱点問題リスト:\n{weakness_text}"
                 contents = [prompt]
             else:
-                system_instruction = (
-                    "あなたは優秀な学習チューターです。提供された資料や最新情報に基づき、学習者が理解を深めるためのコンテンツを作成します。"
+                base_prompt = payload.get("system_prompt", "あなたは優秀な学習チューターです。")
+                system_instruction = base_prompt + (
+                    "\n\n提供された資料や最新情報に基づき、学習者が理解を深めるためのコンテンツを作成します。"
                     "必ず以下のJSON構造のみを出力してください。Markdownブロックは不要です。\n"
                     "{\n"
                     "  \"glossary\": [{\"term\": \"用語1\", \"definition\": \"解説1\"}, ...],\n"
@@ -312,8 +311,9 @@ def study_coaching_hub(request):
             user_answer = payload.get("user_answer")
             glossary = payload.get("glossary_text", "")
             
-            system_instruction = (
-                "あなたは厳密な採点官です。問題に対する学習者の回答を評価してください。"
+            base_prompt = payload.get("system_prompt", "あなたは厳密な採点官です。")
+            system_instruction = base_prompt + (
+                "\n\n問題に対する学習者の回答を評価してください。"
                 "必ず以下のJSON構造のみを出力してください。\n"
                 "{\n"
                 "  \"correct_answer\": \"模範解答と解説\",\n"
@@ -432,6 +432,16 @@ def study_coaching_hub(request):
             if spreadsheet_id:
                 stats = google_services.get_study_stats(spreadsheet_id)
             return JsonResponse({"status": "success", "stats": stats})
+            
+        # ----------------------------------------------------------------
+        # フェーズ⑩：AIコーチ設定（性格）取得
+        # ----------------------------------------------------------------
+        elif phase == "get_personalities":
+            spreadsheet_id = os.environ.get("SPREADSHEET_ID")
+            personalities = []
+            if spreadsheet_id:
+                personalities = google_services.get_personalities(spreadsheet_id)
+            return JsonResponse({"status": "success", "personalities": personalities})
             
         else:
             return JsonResponse({"status": "error", "message": "Invalid phase"}, status=400)

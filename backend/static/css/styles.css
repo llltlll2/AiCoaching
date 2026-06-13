@@ -331,3 +331,44 @@ button {
     }
     .dashboard-grid { grid-template-columns: 1fr; }
 }
+
+/* Quill.js Overrides for Dark Glassmorphism Theme */
+.ql-toolbar.ql-snow {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--glass-border) !important;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom: none !important;
+}
+
+.ql-container.ql-snow {
+    background: rgba(15, 23, 42, 0.3);
+    border: 1px solid var(--glass-border) !important;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-family: 'Inter', 'Noto Sans JP', sans-serif;
+}
+
+.ql-snow .ql-stroke {
+    stroke: var(--text-secondary);
+}
+
+.ql-snow .ql-fill {
+    fill: var(--text-secondary);
+}
+
+.ql-snow .ql-picker {
+    color: var(--text-secondary);
+}
+
+.ql-editor.ql-blank::before {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: normal;
+}
+
+.ql-snow .ql-picker-options {
+    background-color: var(--bg-dark);
+    border: 1px solid var(--glass-border);
+}
