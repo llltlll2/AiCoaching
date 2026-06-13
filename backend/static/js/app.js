@@ -593,28 +593,119 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Consultation Handling
-    const consultForm = document.getElementById('consultation-form');
-    if (consultForm) {
-        consultForm.addEventListener('submit', async (e) => {
+    // Consultation Handling (Chat UI)
+    const chatHistory = document.getElementById('chat-history');
+    
+    function appendChatMessage(role, text) {
+        if (!chatHistory) return;
+        
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-message ${role}`;
+        
+        if (role === 'ai') {
+            msgDiv.innerHTML = `
+                <div class="chat-bubble">${text}</div>
+                <div class="chat-timestamp">${timeStr}</div>
+            `;
+        } else {
+            msgDiv.innerHTML = `
+                <div class="chat-bubble">${text}</div>
+                <div class="chat-timestamp">${timeStr}</div>
+            `;
+        }
+        
+        // ローディングインジケーターがあればその前に挿入、なければ末尾
+        const typingInd = document.getElementById('typing-indicator');
+        if (typingInd) {
+            chatHistory.insertBefore(msgDiv, typingInd);
+        } else {
+            chatHistory.appendChild(msgDiv);
+        }
+        
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+    
+    function showTypingIndicator() {
+        if (!chatHistory || document.getElementById('typing-indicator')) return;
+        const ind = document.createElement('div');
+        ind.id = 'typing-indicator';
+        ind.className = 'chat-message ai';
+        ind.innerHTML = `
+            <div class="typing-indicator">
+                <span></span><span></span><span></span>
+            </div>
+        `;
+        chatHistory.appendChild(ind);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+    
+    function removeTypingIndicator() {
+        const ind = document.getElementById('typing-indicator');
+        if (ind) ind.remove();
+    }
+    
+    async function loadChatHistory(qualification) {
+        if (!chatHistory) return;
+        
+        try {
+            const res = await fetch('/api/study_coaching_hub', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ phase: 'get_consultations', qualification: qualification })
+            });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                chatHistory.innerHTML = '';
+                if (data.history.length === 0) {
+                    appendChatMessage('ai', 'こんにちは！目標資格を選んで、何でも相談してくださいね。');
+                } else {
+                    data.history.forEach(chat => {
+                        // chat.date は省略して時間だけに整形するか、そのまま表示
+                        const userMsg = document.createElement('div');
+                        userMsg.className = 'chat-message user';
+                        userMsg.innerHTML = `<div class="chat-bubble">${chat.query}</div><div class="chat-timestamp">${chat.date}</div>`;
+                        chatHistory.appendChild(userMsg);
+                        
+                        const aiMsg = document.createElement('div');
+                        aiMsg.className = 'chat-message ai';
+                        aiMsg.innerHTML = `<div class="chat-bubble">${chat.response.replace(/\\n/g, '<br>')}</div><div class="chat-timestamp">${chat.date}</div>`;
+                        chatHistory.appendChild(aiMsg);
+                    });
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    const consultBtn = document.getElementById('consult-plan-btn');
+    if (consultBtn) {
+        consultBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             faustAudio.volume = 0;
             faustAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
             faustAudio.play().catch(e => {});
 
-            const btn = document.getElementById('consult-plan-btn');
-            btn.textContent = 'AIコーチに相談中...';
-            btn.disabled = true;
-
             const qual = document.getElementById('qualification').value;
-            const query = document.getElementById('consultation-query').value;
+            const query = document.getElementById('consultation-query').value.trim();
             
             if (!qual) {
                 alert("目標資格を入力して「既存の計画を読み込む」か新規作成してから相談してください。");
-                btn.textContent = 'AIコーチに相談する';
-                btn.disabled = false;
                 return;
             }
+            if (!query) return;
+            
+            // ユーザーメッセージをUIに追加
+            appendChatMessage('user', query);
+            document.getElementById('consultation-query').value = '';
+            
+            consultBtn.disabled = true;
+            showTypingIndicator();
 
             try {
                 const res = await fetch('/api/study_coaching_hub', {
@@ -629,20 +720,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
                 const data = await res.json();
+                removeTypingIndicator();
+                
                 if (data.status === 'success') {
-                    const resultDiv = document.getElementById('consultation-result');
-                    resultDiv.style.display = 'block';
-                    document.getElementById('consultation-advice').innerHTML = data.advice.replace(/\\n/g, '<br>');
+                    appendChatMessage('ai', data.advice.replace(/\\n/g, '<br>'));
                     
                     faustAudio.volume = parseFloat(localStorage.getItem('faust_volume') || 0.5);
                     faustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
                     faustAudio.play().catch(e => console.log('Audio playback failed', e));
                 }
             } catch (err) {
+                removeTypingIndicator();
                 alert('エラーが発生しました。');
             } finally {
-                btn.textContent = 'AIコーチに相談する';
-                btn.disabled = false;
+                consultBtn.disabled = false;
             }
         });
     }
@@ -679,6 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <strong>第${m.week}週: ${m.topic}</strong> (目標: ${m.target_progress_percent}% | 推奨学習時間: ${m.recommended_hours || "設定なし"})<br>
                         </div>`;
                     });
+                    loadChatHistory(qual);
                 } else {
                     alert('この資格の計画は見つかりませんでした。');
                 }

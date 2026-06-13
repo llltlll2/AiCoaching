@@ -117,6 +117,14 @@ def study_coaching_hub(request):
             
             result_plan = extract_json(response.text)
             return JsonResponse({"status": "success", "plan": result_plan})
+
+        elif phase == 'get_consultations':
+            target = payload.get('qualification')
+            spreadsheet_id = os.environ.get("SPREADSHEET_ID")
+            if not target or not spreadsheet_id:
+                return JsonResponse({'status': 'error', 'message': 'Qualification and Spreadsheet ID are required'})
+            history = google_services.get_past_consultations(spreadsheet_id, target)
+            return JsonResponse({'status': 'success', 'history': history})
             
         # ----------------------------------------------------------------
         # フェーズ①-2：学習計画の確定と同期（シート・カレンダー保存）

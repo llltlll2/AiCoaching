@@ -82,18 +82,18 @@
                 
                 <div class="glass-card mt-20" id="consultation-section">
                     <h3>💬 学習計画の相談・日程調整</h3>
-                    <form id="consultation-form">
-                        <div class="form-group">
-                            <textarea id="consultation-query" rows="3" placeholder="例: 今週は忙しくて土日にしか勉強できないんですが、日程をどう調整すればいいですか？" required></textarea>
+                    <div class="chat-container">
+                        <div class="chat-history" id="chat-history">
+                            <!-- JS injects chat messages here -->
+                            <div class="chat-message ai">
+                                <div class="chat-bubble">こんにちは！目標資格を選んで、何でも相談してくださいね。</div>
+                            </div>
                         </div>
-                        <button type="submit" class="btn-primary" id="consult-plan-btn">AIコーチに相談する</button>
-                    </form>
-                    
-                    <div id="consultation-result" class="mt-20" style="display: none; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 12px; border-left: 4px solid var(--accent-blue);">
-                        <h4>🤖 AIコーチの回答</h4>
-                        <p id="consultation-advice" style="margin-top: 10px; line-height: 1.6;"></p>
-                        <div style="text-align: center; margin-top: 15px;">
-                            <button id="play-consultation-audio" class="btn-secondary" style="background-color: var(--accent-purple);">🔊 回答音声を再生する</button>
+                        <div class="chat-input-area">
+                            <textarea id="consultation-query" rows="1" placeholder="メッセージを入力... (Ctrl+Enterで送信)" autocomplete="off"></textarea>
+                            <button class="btn-primary" id="consult-plan-btn" title="送信する">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            </button>
                         </div>
                     </div>
                 </div>
