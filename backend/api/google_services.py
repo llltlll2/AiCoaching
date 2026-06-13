@@ -210,6 +210,61 @@ def get_total_study_time(spreadsheet_id, target):
         print(f"Failed to calculate total study time: {e}")
         return 0
 
+def get_average_study_time(spreadsheet_id):
+    """
+    ポモドーロ履歴から過去の学習完了時間の平均を算出し、(hour, minute) のタプルで返す。
+    深夜0時〜4時は24時〜28時として計算する。
+    データがない場合はデフォルトとして (20, 0) を返す。
+    """
+    try:
+        client = get_gspread_client()
+        sh = client.open_by_key(spreadsheet_id)
+        try:
+            worksheet = sh.worksheet("ポモドーロ履歴")
+        except gspread.WorksheetNotFound:
+            return (20, 0)
+            
+        records = worksheet.get_all_records()
+        if not records:
+            return (20, 0)
+            
+        total_minutes = 0
+        count = 0
+        import datetime
+        
+        for row in records:
+            dt_str = str(row.get("完了日時", ""))
+            try:
+                # 期待フォーマット: YYYY-MM-DD HH:MM:SS
+                dt = datetime.datetime.strptime(dt_str, "%Y-%m-%d %H:%M:%S")
+                hour = dt.hour
+                minute = dt.minute
+                
+                # 深夜0〜4時は24〜28時として扱う
+                if hour < 4:
+                    hour += 24
+                    
+                total_minutes += (hour * 60) + minute
+                count += 1
+            except ValueError:
+                continue
+                
+        if count == 0:
+            return (20, 0)
+            
+        avg_minutes = total_minutes // count
+        avg_hour = avg_minutes // 60
+        avg_minute = avg_minutes % 60
+        
+        # 24以上の場合は0-23の範囲に戻す
+        if avg_hour >= 24:
+            avg_hour -= 24
+            
+        return (avg_hour, avg_minute)
+    except Exception as e:
+        print(f"Failed to calculate average study time: {e}")
+        return (20, 0)
+
 def get_study_stats(spreadsheet_id):
     """
     本日の合計学習時間、ストリーク、ヒートマップデータを取得する

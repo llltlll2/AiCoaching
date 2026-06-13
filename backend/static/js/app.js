@@ -9,9 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     faustAudio.volume = volumeSlider ? parseFloat(volumeSlider.value) : 0.5;
 
     const saveSettingsBtn = document.getElementById('save-settings-btn');
-    const speakerSelect = document.getElementById('speaker-select');
     const personalitySelect = document.getElementById('personality-select');
-    const volumeSlider = document.getElementById('volume-slider');
 
     // 起動時に性格一覧を取得
     async function loadPersonalities() {
@@ -864,6 +862,50 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.disabled = false;
         });
     }
+
+    // ----------------------------------------------------------------
+    // Global Keyboard Shortcuts
+    // ----------------------------------------------------------------
+    document.addEventListener('keydown', (e) => {
+        // Ctrl + Enter で送信
+        if (e.ctrlKey && e.key === 'Enter') {
+            const activeTab = document.querySelector('.tab-content.active');
+            if (!activeTab) return;
+
+            // タブごとに対応するメイン送信ボタンを特定してクリック
+            let targetBtnId = '';
+            const tabId = activeTab.id;
+
+            switch (tabId) {
+                case 'tab-plan':
+                    if (document.activeElement.id === 'consultation-query') {
+                        targetBtnId = 'consult-plan-btn';
+                    } else if (['qualification', 'duration', 'syllabus', 'constraints'].includes(document.activeElement.id)) {
+                        targetBtnId = 'draft-plan-btn';
+                    }
+                    break;
+                case 'tab-daily':
+                    if (['daily-target', 'content', 'memo-editor', 'progress'].includes(document.activeElement.id) || document.activeElement.closest('.quill-wrapper')) {
+                        targetBtnId = 'submit-daily-btn';
+                    }
+                    break;
+                case 'tab-quiz':
+                    if (document.activeElement.id === 'quiz-answer') {
+                        targetBtnId = 'submit-quiz-btn';
+                    } else if (['quiz-target', 'quiz-format'].includes(document.activeElement.id)) {
+                        targetBtnId = 'generate-quiz-btn';
+                    }
+                    break;
+            }
+
+            if (targetBtnId) {
+                const btn = document.getElementById(targetBtnId);
+                if (btn && !btn.disabled) {
+                    btn.click();
+                }
+            }
+        }
+    });
 
     // Quiz Evaluation
     const evaluateQuizBtn = document.getElementById('quiz-answer-form');
