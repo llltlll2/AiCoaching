@@ -824,7 +824,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const resDiv = document.getElementById('coaching-result');
                 resDiv.style.display = 'block';
                 document.getElementById('daily-rating').textContent = `Rating: ${data.evaluation.daily_rating}`;
-                document.getElementById('coaching-comment').textContent = data.evaluation.coaching_comment;
+                
+                // Add initial AI feedback to chat
+                document.getElementById('daily-chat-history').innerHTML = '';
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                document.getElementById('daily-chat-history').innerHTML = `
+                    <div class="chat-message ai" id="coaching-comment-container">
+                        <div class="chat-bubble" id="coaching-comment">${data.evaluation.coaching_comment.replace(/\\n/g, '<br>')}</div>
+                        <div class="chat-timestamp" id="daily-chat-timestamp">${timeStr}</div>
+                    </div>
+                `;
                 
                 // Reset accumulated time after submission
                 totalStudyTimeMinutes = 0;
@@ -852,6 +862,74 @@ document.addEventListener('DOMContentLoaded', () => {
         faustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
         faustAudio.play().catch(e => alert('音声の再生に失敗しました。VOICEVOXが起動しているか確認してください。'));
     });
+
+    // Daily Chat Follow-up
+    const dailyChatBtn = document.getElementById('daily-chat-btn');
+    if (dailyChatBtn) {
+        dailyChatBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const query = document.getElementById('daily-chat-query').value.trim();
+            if (!query) return;
+
+            const chatHistory = document.getElementById('daily-chat-history');
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            // Append user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'chat-message user';
+            userMsg.innerHTML = `<div class="chat-bubble">${query}</div><div class="chat-timestamp">${timeStr}</div>`;
+            chatHistory.appendChild(userMsg);
+            document.getElementById('daily-chat-query').value = '';
+            
+            dailyChatBtn.disabled = true;
+            
+            // Show typing indicator
+            const ind = document.createElement('div');
+            ind.id = 'daily-typing-indicator';
+            ind.className = 'chat-message ai';
+            ind.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+            chatHistory.appendChild(ind);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            try {
+                const res = await fetch('/api/study_coaching_hub', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        phase: 'daily_report_chat',
+                        query: query,
+                        speaker_id: localStorage.getItem('speaker_id') || 47,
+                        system_prompt: localStorage.getItem('system_prompt') || ''
+                    })
+                });
+                const data = await res.json();
+                
+                const indicator = document.getElementById('daily-typing-indicator');
+                if (indicator) indicator.remove();
+
+                if (data.status === 'success') {
+                    const aiMsg = document.createElement('div');
+                    aiMsg.className = 'chat-message ai';
+                    const aiTime = new Date();
+                    aiMsg.innerHTML = `<div class="chat-bubble">${data.response.replace(/\\n/g, '<br>')}</div><div class="chat-timestamp">${String(aiTime.getHours()).padStart(2, '0')}:${String(aiTime.getMinutes()).padStart(2, '0')}</div>`;
+                    chatHistory.appendChild(aiMsg);
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+                    // Play audio
+                    faustAudio.volume = parseFloat(localStorage.getItem('faust_volume') || 0.5);
+                    faustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
+                    faustAudio.play().catch(e => {});
+                }
+            } catch (err) {
+                const indicator = document.getElementById('daily-typing-indicator');
+                if (indicator) indicator.remove();
+                alert('エラーが発生しました。');
+            } finally {
+                dailyChatBtn.disabled = false;
+            }
+        });
+    }
 
     // Quiz Generation
     let currentQuizGlossary = "";
@@ -1036,10 +1114,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.status === 'success') {
                 document.getElementById('quiz-result-card').style.display = 'block';
                 const evalData = data.evaluation;
-                document.getElementById('quiz-evaluation').innerHTML = `
+                
+                document.getElementById('quiz-chat-history').innerHTML = '';
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                
+                const evaluationHtml = `
                     <p><strong>判定:</strong> <span style="color: ${evalData.is_correct.includes('正解') ? 'var(--success)' : 'var(--danger)'}">${evalData.is_correct}</span></p>
                     <p><strong>模範解答・解説:</strong> ${evalData.correct_answer}</p>
                     <p><strong>フィードバック:</strong> ${evalData.feedback}</p>
+                `;
+
+                document.getElementById('quiz-chat-history').innerHTML = `
+                    <div class="chat-message ai" id="quiz-evaluation-container">
+                        <div class="chat-bubble" id="quiz-evaluation">${evaluationHtml}</div>
+                        <div class="chat-timestamp" id="quiz-chat-timestamp">${timeStr}</div>
+                    </div>
                 `;
                 
                 // Play the generated audio automatically
@@ -1061,4 +1151,72 @@ document.addEventListener('DOMContentLoaded', () => {
         faustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
         faustAudio.play().catch(e => alert('音声の再生に失敗しました。VOICEVOXが起動しているか確認してください。'));
     });
+
+    // Quiz Chat Follow-up
+    const quizChatBtn = document.getElementById('quiz-chat-btn');
+    if (quizChatBtn) {
+        quizChatBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const query = document.getElementById('quiz-chat-query').value.trim();
+            if (!query) return;
+
+            const chatHistory = document.getElementById('quiz-chat-history');
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            // Append user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'chat-message user';
+            userMsg.innerHTML = `<div class="chat-bubble">${query}</div><div class="chat-timestamp">${timeStr}</div>`;
+            chatHistory.appendChild(userMsg);
+            document.getElementById('quiz-chat-query').value = '';
+            
+            quizChatBtn.disabled = true;
+            
+            // Show typing indicator
+            const ind = document.createElement('div');
+            ind.id = 'quiz-typing-indicator';
+            ind.className = 'chat-message ai';
+            ind.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+            chatHistory.appendChild(ind);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            try {
+                const res = await fetch('/api/study_coaching_hub', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        phase: 'quiz_chat',
+                        query: query,
+                        speaker_id: localStorage.getItem('speaker_id') || 47,
+                        system_prompt: localStorage.getItem('system_prompt') || ''
+                    })
+                });
+                const data = await res.json();
+                
+                const indicator = document.getElementById('quiz-typing-indicator');
+                if (indicator) indicator.remove();
+
+                if (data.status === 'success') {
+                    const aiMsg = document.createElement('div');
+                    aiMsg.className = 'chat-message ai';
+                    const aiTime = new Date();
+                    aiMsg.innerHTML = `<div class="chat-bubble">${data.response.replace(/\\n/g, '<br>')}</div><div class="chat-timestamp">${String(aiTime.getHours()).padStart(2, '0')}:${String(aiTime.getMinutes()).padStart(2, '0')}</div>`;
+                    chatHistory.appendChild(aiMsg);
+                    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+                    // Play audio
+                    faustAudio.volume = parseFloat(localStorage.getItem('faust_volume') || 0.5);
+                    faustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
+                    faustAudio.play().catch(e => {});
+                }
+            } catch (err) {
+                const indicator = document.getElementById('quiz-typing-indicator');
+                if (indicator) indicator.remove();
+                alert('エラーが発生しました。');
+            } finally {
+                quizChatBtn.disabled = false;
+            }
+        });
+    }
 });

@@ -199,9 +199,22 @@
                 <div id="coaching-result" class="glass-card mt-20" style="display: none;">
                     <h3>🤖 AIコーチからのフィードバック</h3>
                     <div id="daily-rating" style="font-size: 2rem; font-weight: bold; color: var(--accent-blue); text-align: center;"></div>
-                    <p id="coaching-comment" style="margin-top: 15px; line-height: 1.6;"></p>
-                    <div style="text-align: center; margin-top: 20px;">
-                        <button id="play-coaching-audio" class="btn-secondary" style="background-color: var(--accent-purple);">🔊 フィードバック音声を再生する</button>
+                    <div class="chat-container mt-20">
+                        <div class="chat-history" id="daily-chat-history">
+                            <div class="chat-message ai" id="coaching-comment-container">
+                                <div class="chat-bubble" id="coaching-comment"></div>
+                                <div class="chat-timestamp" id="daily-chat-timestamp"></div>
+                            </div>
+                        </div>
+                        <div class="chat-input-area">
+                            <textarea id="daily-chat-query" rows="1" placeholder="フィードバックについて質問する... (Ctrl+Enterで送信)" autocomplete="off"></textarea>
+                            <button class="btn-primary" id="daily-chat-btn" title="送信する">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <button id="play-coaching-audio" class="btn-secondary" style="background-color: var(--accent-purple);">🔊 最新の音声を再生する</button>
                     </div>
                 </div>
             </section>
@@ -249,10 +262,23 @@
 
                     <div id="quiz-result-card" class="glass-card mt-20" style="display: none;">
                         <h3>📝 採点結果</h3>
-                        <div id="quiz-evaluation" style="margin-top: 10px; line-height: 1.6;"></div>
-                        <p style="font-size: 0.85rem; color: var(--success); margin-top: 10px;">※ この結果は「小テスト履歴」シートに自動保存されました</p>
-                        <div style="text-align: center; margin-top: 20px;">
-                            <button id="play-quiz-audio" class="btn-secondary" style="background-color: var(--accent-purple);">🔊 フィードバック音声を再生する</button>
+                        <p style="font-size: 0.85rem; color: var(--success); margin-top: 10px; margin-bottom: 10px;">※ この結果は「小テスト履歴」シートに自動保存されました</p>
+                        <div class="chat-container">
+                            <div class="chat-history" id="quiz-chat-history">
+                                <div class="chat-message ai" id="quiz-evaluation-container">
+                                    <div class="chat-bubble" id="quiz-evaluation"></div>
+                                    <div class="chat-timestamp" id="quiz-chat-timestamp"></div>
+                                </div>
+                            </div>
+                            <div class="chat-input-area">
+                                <textarea id="quiz-chat-query" rows="1" placeholder="この問題について質問する... (Ctrl+Enterで送信)" autocomplete="off"></textarea>
+                                <button class="btn-primary" id="quiz-chat-btn" title="送信する">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div style="text-align: center; margin-top: 10px;">
+                            <button id="play-quiz-audio" class="btn-secondary" style="background-color: var(--accent-purple);">🔊 最新の音声を再生する</button>
                         </div>
                     </div>
                 </div>

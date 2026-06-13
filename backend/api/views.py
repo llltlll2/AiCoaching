@@ -311,6 +311,29 @@ def study_coaching_hub(request):
             )
             return JsonResponse({"status": "success", "quiz_data": extract_json(response.text)})
 
+        elif phase == "quiz_chat":
+            query = payload.get("query", "")
+            base_prompt = payload.get("system_prompt", "あなたは熱心なAIコーチです。")
+            
+            # 簡易的に文脈なしで答えるか、あるいは前のクイズ結果を持たせることは今回は省略（本来はセッション等で持つが簡易化）
+            system_instruction = base_prompt + (
+                "\n\n学習者が直前に解いた小テストについて、追加の質問や解説を求めています。\n"
+                "丁寧かつ分かりやすく答えてください。\n"
+            )
+            
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=query,
+                config=types.GenerateContentConfig(system_instruction=system_instruction)
+            )
+            reply = response.text
+            
+            speaker_id = payload.get("speaker_id", 47)
+            if reply:
+                trigger_voicevox(reply, speaker_id)
+                
+            return JsonResponse({"status": "success", "response": reply})
+
         # ----------------------------------------------------------------
         # フェーズ④：小テストの採点と保存
         # ----------------------------------------------------------------
@@ -369,6 +392,28 @@ def study_coaching_hub(request):
                 trigger_voicevox(eval_result.get("feedback"), speaker_id)
                 
             return JsonResponse({"status": "success", "evaluation": eval_result})
+
+        elif phase == 'daily_report_chat':
+            query = payload.get("query", "")
+            base_prompt = payload.get("system_prompt", "あなたは熱心なAIコーチです。")
+            
+            system_instruction = base_prompt + (
+                "\n\n学習者が日報のフィードバックに対して追加の質問をしてきました。\n"
+                "簡潔で励みになるように、分かりやすく答えてください。\n"
+            )
+            
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=query,
+                config=types.GenerateContentConfig(system_instruction=system_instruction)
+            )
+            reply = response.text
+            
+            speaker_id = payload.get("speaker_id", 47)
+            if reply:
+                trigger_voicevox(reply, speaker_id)
+                
+            return JsonResponse({"status": "success", "response": reply})
 
         # ----------------------------------------------------------------
         # フェーズ⑤：過去の学習テーマ取得 (Autocomplete用)
