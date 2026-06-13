@@ -261,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.status === 'success') {
                 const stats = data.stats;
                 currentHeatmapData = stats.heatmap || {};
+                currentCategoryData = stats.category_data || {};
                 updateChart('week'); // Init chart with week data
                 document.querySelector('.streak-count').textContent = `${stats.streak} Days`;
                 
@@ -410,40 +411,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Chart.js Initialization ---
     const ctx = document.getElementById('progressChart').getContext('2d');
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');   
-    gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+    const CATEGORY_COLORS = {
+        '学習': 'rgba(59, 130, 246, 0.8)', // blue
+        '仕事': 'rgba(168, 85, 247, 0.8)', // purple
+        '趣味・創作': 'rgba(249, 115, 22, 0.8)', // orange
+        'その他': 'rgba(148, 163, 184, 0.8)' // gray
+    };
 
     let progressChart = new Chart(ctx, {
-        type: 'line',
+        type: 'bar',
         data: {
             labels: [],
-            datasets: [{
-                label: '学習時間 (分)',
-                data: [],
-                borderColor: '#3b82f6',
-                backgroundColor: gradient,
-                borderWidth: 2,
-                pointBackgroundColor: '#60a5fa',
-                pointBorderColor: '#fff',
-                pointHoverBackgroundColor: '#fff',
-                pointHoverBorderColor: '#3b82f6',
-                fill: true,
-                tension: 0.4
-            }]
+            datasets: []
         },
         options: {
             responsive: true,
             plugins: {
-                legend: { labels: { color: '#f8fafc' } }
+                legend: { labels: { color: '#f8fafc' } },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
             },
             scales: {
                 y: {
+                    stacked: true,
                     beginAtZero: true,
                     grid: { color: 'rgba(255, 255, 255, 0.1)' },
                     ticks: { color: '#94a3b8' }
                 },
                 x: {
+                    stacked: true,
                     grid: { display: false },
                     ticks: { color: '#94a3b8' }
                 }
@@ -452,11 +451,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     let currentHeatmapData = {};
+    let currentCategoryData = {};
     
     function updateChart(mode) {
         if (!progressChart) return;
         const labels = [];
-        const data = [];
+        const datasetsMap = { '学習': [], '仕事': [], '趣味・創作': [], 'その他': [] };
         const today = new Date();
         
         if (mode === 'week') {
@@ -465,18 +465,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 d.setDate(d.getDate() - i);
                 const ds = d.toISOString().split('T')[0];
                 labels.push(`${d.getDate()}日`);
-                data.push(currentHeatmapData[ds] || 0);
+                
+                const catData = currentCategoryData[ds] || {};
+                Object.keys(datasetsMap).forEach(cat => {
+                    datasetsMap[cat].push(catData[cat] || 0);
+                });
             }
         } else if (mode === 'month') {
             for (let i = 3; i >= 0; i--) {
-                let weekTotal = 0;
+                const weekCatTotals = { '学習': 0, '仕事': 0, '趣味・創作': 0, 'その他': 0 };
                 for (let j = 0; j < 7; j++) {
                     const d = new Date(today);
                     d.setDate(d.getDate() - (i * 7 + j));
                     const ds = d.toISOString().split('T')[0];
-                    weekTotal += (currentHeatmapData[ds] || 0);
+                    const catData = currentCategoryData[ds] || {};
+                    Object.keys(weekCatTotals).forEach(cat => {
+                        weekCatTotals[cat] += (catData[cat] || 0);
+                    });
                 }
-                data.push(weekTotal);
+                Object.keys(datasetsMap).forEach(cat => {
+                    datasetsMap[cat].push(weekCatTotals[cat]);
+                });
             }
             labels.push("3週間前", "2週間前", "先週", "今週");
         } else if (mode === 'year') {
@@ -484,18 +493,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 const targetMonth = new Date(today.getFullYear(), today.getMonth() - i, 1);
                 const mStr = `${targetMonth.getFullYear()}-${String(targetMonth.getMonth() + 1).padStart(2, '0')}`;
                 labels.push(`${targetMonth.getMonth() + 1}月`);
-                let monthTotal = 0;
-                for (const dateStr in currentHeatmapData) {
+                
+                const monthCatTotals = { '学習': 0, '仕事': 0, '趣味・創作': 0, 'その他': 0 };
+                for (const dateStr in currentCategoryData) {
                     if (dateStr.startsWith(mStr)) {
-                        monthTotal += currentHeatmapData[dateStr];
+                        const catData = currentCategoryData[dateStr];
+                        Object.keys(monthCatTotals).forEach(cat => {
+                            monthCatTotals[cat] += (catData[cat] || 0);
+                        });
                     }
                 }
-                data.push(monthTotal);
+                Object.keys(datasetsMap).forEach(cat => {
+                    datasetsMap[cat].push(monthCatTotals[cat]);
+                });
             }
         }
         
         progressChart.data.labels = labels;
-        progressChart.data.datasets[0].data = data;
+        progressChart.data.datasets = Object.keys(datasetsMap).map(cat => ({
+            label: cat,
+            data: datasetsMap[cat],
+            backgroundColor: CATEGORY_COLORS[cat] || CATEGORY_COLORS['その他'],
+            borderWidth: 0
+        })).filter(ds => ds.data.some(v => v > 0)); // Only show datasets with some data
+        
         progressChart.update();
         
         // Update button styles

@@ -108,23 +108,31 @@
 
                 <div class="dashboard-grid">
                     <div class="glass-card target-card">
-                        <h3>🎯 目標・学習時間集計</h3>
+                        <h3>🎯 タスク / 目標・作業時間集計</h3>
                         <div class="form-group" style="margin-bottom: 15px;">
-                            <label for="dashboard-target">目標資格</label>
-                            <input type="text" id="dashboard-target" list="past-subjects" placeholder="例: 応用情報技術者試験" style="text-align: center;">
+                            <label for="dashboard-target">タスク / 目標名</label>
+                            <input type="text" id="dashboard-target" list="past-subjects" placeholder="例: 応用情報技術者試験、ブログ執筆 など" style="text-align: center;">
                         </div>
                         <div class="target-display" id="today-target">
-                            現在の合計学習時間: <span id="target-aggregated-time">--</span> 分
+                            現在の合計作業時間: <span id="target-aggregated-time">--</span> 分
                         </div>
                     </div>
                     
                     <div class="glass-card pomodoro-card">
                         <h3>⏱ ポモドーロ</h3>
                         <div class="form-group" style="margin-bottom: 10px;">
-                            <input type="text" id="pomodoro-subject" list="past-subjects" placeholder="目標資格 (ダッシュボードと連動)" required style="text-align: center;">
+                            <input type="text" id="pomodoro-subject" list="past-subjects" placeholder="タスク / 目標名 (ダッシュボードと連動)" required style="text-align: center;">
                             <datalist id="past-subjects">
                                 <!-- Populated by JS -->
                             </datalist>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <select id="task-category" style="text-align: center; background: rgba(0,0,0,0.2); color: var(--text-primary); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px;">
+                                <option value="学習">カテゴリ: 学習 (Study)</option>
+                                <option value="仕事">カテゴリ: 仕事 (Work)</option>
+                                <option value="趣味・創作">カテゴリ: 趣味・創作 (Hobby/Creative)</option>
+                                <option value="その他">カテゴリ: その他 (Other)</option>
+                            </select>
                         </div>
                         <div class="timer-display" id="timer">25:00</div>
                         <div class="timer-controls">
@@ -134,7 +142,7 @@
                             <button id="reset-timer" class="btn-secondary">Reset</button>
                         </div>
                         <div class="study-time-display mt-20" style="text-align: center; color: var(--accent-blue);">
-                            <strong>本日の合計学習時間: <span id="total-study-time">0</span> 分</strong>
+                            <strong>本日のセッション合計時間: <span id="total-study-time">0</span> 分</strong>
                         </div>
                     </div>
                 </div>
@@ -175,7 +183,7 @@
                 <div class="glass-card mt-20">
                     <form id="daily-form">
                         <div class="form-group">
-                            <label for="content">今日やったこと (学習内容)</label>
+                            <label for="content">今日やったこと (作業・学習内容)</label>
                             <input type="text" id="content" list="past-contents" autocomplete="off" value="" required>
                             <datalist id="past-contents"></datalist>
                         </div>

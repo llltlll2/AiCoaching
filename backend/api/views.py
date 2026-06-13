@@ -206,13 +206,23 @@ def study_coaching_hub(request):
             content = payload.get("content")
             progress = payload.get("progress_volume")
             memo = payload.get("memo", "")
+            category = payload.get("category", "学習")
             
             base_prompt = payload.get("system_prompt", "あなたは優秀な学習伴走コーチです。すぐ正解を教えず、自発的な気づきを促す段階的なヒントや問いかけを行ってください。")
-            system_instruction = base_prompt + (
-                "\n\nもしユーザーからの『学習メモ・悩み』がある場合は、それに対するアドバイスや共感の言葉も含めてください。"
-                "出力は必ず以下のJSON構造を厳守してください。Markdownブロックは不要です。\n"
-                "出力例: {\"daily_rating\": \"B\", \"progress_status\": \"delayed_light\", \"coaching_comment\": \"フィードバック本文...\"}"
-            )
+            
+            if category != "学習":
+                system_instruction = base_prompt + (
+                    f"\n\n今回の対象は「学習」ではなく、ユーザーの「{category}」カテゴリのタスクに関する日報です。"
+                    "勉強のコーチではなく、タスクや生産性向上のコーチとして、アドバイスや共感の言葉を含めてください。"
+                    "出力は必ず以下のJSON構造を厳守してください。Markdownブロックは不要です。\n"
+                    "出力例: {\"daily_rating\": \"B\", \"progress_status\": \"delayed_light\", \"coaching_comment\": \"フィードバック本文...\"}"
+                )
+            else:
+                system_instruction = base_prompt + (
+                    "\n\nもしユーザーからの『学習メモ・悩み』がある場合は、それに対するアドバイスや共感の言葉も含めてください。"
+                    "出力は必ず以下のJSON構造を厳守してください。Markdownブロックは不要です。\n"
+                    "出力例: {\"daily_rating\": \"B\", \"progress_status\": \"delayed_light\", \"coaching_comment\": \"フィードバック本文...\"}"
+                )
             
             # File APIを利用して教材を読み込み
             materials = get_or_upload_materials(client)
@@ -245,7 +255,8 @@ def study_coaching_hub(request):
                         study_time=study_time,
                         progress=progress,
                         rating=result_json.get("daily_rating", ""),
-                        comment=result_json.get("coaching_comment", "")
+                        comment=result_json.get("coaching_comment", ""),
+                        category=category
                     )
                 except Exception as e:
                     print("Spreadsheet append error:", e)
@@ -448,7 +459,8 @@ def study_coaching_hub(request):
                         spreadsheet_id=spreadsheet_id,
                         date_time=now_str,
                         subject=payload.get("target", "無題"),
-                        duration_minutes=payload.get("duration", 0)
+                        duration_minutes=payload.get("duration", 0),
+                        category=payload.get("category", "学習")
                     )
                 except Exception as e:
                     print("Pomodoro save error:", e)

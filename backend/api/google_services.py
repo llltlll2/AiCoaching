@@ -30,15 +30,15 @@ def get_calendar_service():
 # Spreadsheet Helper Functions
 # ==========================================
 
-def append_daily_record(spreadsheet_id, date, target, content, study_time, progress, rating, comment):
+def append_daily_record(spreadsheet_id, date, target, content, study_time, progress, rating, comment, category="学習"):
     """
     日々の記録シートの末尾に記録と評価を追記する
     """
     client = get_gspread_client()
     sheet = client.open_by_key(spreadsheet_id).worksheet("日々の記録履歴")
     
-    # 追記するデータの配列: ['日付', '目標資格', '今日やったこと', '学習時間', '進捗', '評価', 'コメント']
-    row_data = [date, target, content, f"{study_time}分", progress, rating, comment]
+    # 追記するデータの配列: ['日付', 'タスク/目標名', '今日やったこと', '作業時間', '進捗', '評価', 'コメント', 'カテゴリ']
+    row_data = [date, target, content, f"{study_time}分", progress, rating, comment, category]
     
     # A列から追記
     sheet.append_row(row_data)
@@ -290,13 +290,21 @@ def get_study_stats(spreadsheet_id):
         daily_records = daily_sheet.get_all_values()
         
         # study_dates = { "YYYY-MM-DD": total_minutes }
+        # category_data = { "YYYY-MM-DD": { "学習": 30, "仕事": 60 } }
         study_dates = {}
+        category_data = {}
         for row in daily_records[1:]:
             if len(row) >= 4:
                 date_str = row[0][:10]
                 time_str = row[3].replace("分", "").strip()
                 mins = int(time_str) if time_str.isdigit() else 0
+                cat = row[7] if len(row) > 7 else "学習"
+                
                 study_dates[date_str] = study_dates.get(date_str, 0) + mins
+                
+                if date_str not in category_data:
+                    category_data[date_str] = {}
+                category_data[date_str][cat] = category_data[date_str].get(cat, 0) + mins
                 
         # ストリーク計算
         streak = 0
@@ -312,7 +320,8 @@ def get_study_stats(spreadsheet_id):
         return {
             "today_minutes": today_minutes,
             "streak": streak,
-            "heatmap": study_dates
+            "heatmap": study_dates,
+            "category_data": category_data
         }
     except Exception as e:
         print("get_study_stats error:", e)
@@ -340,13 +349,13 @@ def get_weakness_questions(spreadsheet_id, target):
         print("get_weakness_questions error:", e)
         return []
 
-def append_pomodoro_record(spreadsheet_id, date_time, subject, duration_minutes):
+def append_pomodoro_record(spreadsheet_id, date_time, subject, duration_minutes, category="学習"):
     """
     ポモドーロの個別セッション記録を保存する
     """
     client = get_gspread_client()
     sheet = client.open_by_key(spreadsheet_id).worksheet("ポモドーロ履歴")
-    row_data = [date_time, subject, f"{duration_minutes}分"]
+    row_data = [date_time, subject, f"{duration_minutes}分", category]
     sheet.append_row(row_data)
 
 def write_roadmap(spreadsheet_id, target, milestones):
