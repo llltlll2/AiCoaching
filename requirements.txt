@@ -1,0 +1,7 @@
+django
+google-genai
+requests
+django-cors-headers
+python-dotenv
+gspread
+google-api-python-client
