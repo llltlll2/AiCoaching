@@ -19,10 +19,10 @@
                 <span class="version">v2.0</span>
             </div>
             <ul class="nav-links">
-                <li class="active" data-tab="tab-plan">📋 学習計画</li>
-                <li data-tab="tab-daily">📝 日々の記録</li>
+                <li class="active" data-tab="tab-daily">📝 日々の記録</li>
                 <li data-tab="tab-quiz">🎓 小テスト</li>
                 <li data-tab="tab-weak">🔥 弱点特訓</li>
+                <li data-tab="tab-plan">📋 学習計画</li>
                 <li data-tab="tab-settings">⚙️ 設定</li>
             </ul>
             
@@ -39,68 +39,54 @@
         <main class="content-area">
             
             <!-- Tab: Plan -->
-            <section id="tab-plan" class="tab-content active">
+            <section id="tab-plan" class="tab-content">
                 <header class="page-header">
-                    <h1>学習計画の作成</h1>
-                    <p>目標となる資格と期間を設定して、ロードマップを生成します。</p>
+                    <h1>対話型ロードマップ作成</h1>
+                    <p>AIコーチとのチャットを通じて、あなたに最適な学習計画を作成・調整します。</p>
                 </header>
                 
-                <div class="glass-card">
-                    <form id="plan-form">
-                        <div class="form-group">
-                            <label for="qualification">資格名</label>
-                            <input type="text" id="qualification" placeholder="例: 応用情報技術者試験" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="duration">期間 (ヶ月)</label>
-                            <input type="number" id="duration" placeholder="例: 3" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="syllabus">シラバス・参考URL (任意)</label>
-                            <input type="text" id="syllabus" placeholder="例: https://jitec.ipa.go.jp/1_04hanni_sukiru/mondai_han_i_a.pdf">
-                        </div>
-                        <div class="form-group">
-                            <label for="constraints">学習の相談・制約 (任意)</label>
-                            <textarea id="constraints" rows="2" placeholder="例: 平日は仕事なので1時間しか勉強できない"></textarea>
-                        </div>
-                        <button type="submit" class="btn-primary" id="draft-plan-btn">
-                            ロードマップ草案を作成 (AI)
-                        </button>
-                        <button type="button" class="btn-secondary" id="fetch-plan-btn" style="margin-top: 10px; width: 100%;">
-                            既存の計画を読み込む
-                        </button>
-                    </form>
-                </div>
-                
-                <div class="roadmap-display" id="roadmap-container" style="display: none; margin-top: 20px;">
-                    <h3>生成されたロードマップ草案</h3>
-                    <div class="timeline" id="timeline">
-                        <!-- JS injects milestones here -->
-                    </div>
-                    <button class="btn-primary mt-20" id="sync-plan-btn" style="width: 100%; display: none;">この計画で確定しカレンダーに登録する</button>
-                </div>
-                
-                <div class="glass-card mt-20" id="consultation-section">
-                    <h3>💬 学習計画の相談・日程調整</h3>
-                    <div class="chat-container">
-                        <div class="chat-history" id="chat-history">
-                            <!-- JS injects chat messages here -->
-                            <div class="chat-message ai">
-                                <div class="chat-bubble">こんにちは！目標資格を選んで、何でも相談してくださいね。</div>
+                <div class="roadmap-chat-layout">
+                    <!-- Left Column: Chat and Controls -->
+                    <div class="glass-card" style="display: flex; flex-direction: column; height: 580px;">
+                        <div style="padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px;">
+                            <label for="qualification" style="font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 5px;">目標資格名</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="qualification" placeholder="例: 応用情報技術者試験" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white;">
+                                <button type="button" class="btn-secondary" id="fetch-plan-btn" style="padding: 8px 15px; font-size: 0.85rem; margin: 0; white-space: nowrap;">計画を読み込む</button>
                             </div>
                         </div>
-                        <div class="chat-input-area">
-                            <textarea id="consultation-query" rows="1" placeholder="メッセージを入力... (Ctrl+Enterで送信)" autocomplete="off"></textarea>
-                            <button class="btn-primary" id="consult-plan-btn" title="送信する">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                            </button>
+                        
+                        <div class="chat-container" style="flex: 1; margin-bottom: 0; border: none; background: transparent;">
+                            <div class="chat-history" id="chat-history">
+                                <div class="chat-message ai">
+                                    <div class="chat-bubble">こんにちは！上の「目標資格名」に入力したのち、チャットで「〜ヶ月で合格するための計画を作りたい」「平日は仕事で〜時間勉強できる」などと教えてください。AIが自動で日程を調整してロードマップを作成します！</div>
+                                </div>
+                            </div>
+                            <div class="chat-input-area" style="padding: 10px 0 0 0;">
+                                <textarea id="consultation-query" rows="2" placeholder="AIに計画や制約を相談... (Ctrl+Enterで送信)" autocomplete="off" style="flex: 1;"></textarea>
+                                <button class="btn-primary" id="consult-plan-btn" title="送信する" style="padding: 10px 15px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                </button>
+                            </div>
                         </div>
+                    </div>
+                    
+                    <!-- Right Column: Live Roadmap -->
+                    <div class="glass-card" id="roadmap-container" style="display: flex; flex-direction: column; height: 580px;">
+                        <h3 style="margin-bottom: 10px; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">📋 ロードマップ</h3>
+                        <div class="timeline" id="timeline" style="flex: 1;">
+                            <div style="color: var(--text-secondary); text-align: center; margin-top: 80px; padding: 20px;">
+                                チャットで条件を伝えると、ここに自動で週次の学習計画（マイルストーン）が生成されます。<br><br>
+                                ※既存の計画がある場合は、左上の「計画を読み込む」を押してください。
+                            </div>
+                        </div>
+                        <button class="btn-primary mt-20" id="sync-plan-btn" style="width: 100%; display: none;">この計画で確定しカレンダーに登録する</button>
                     </div>
                 </div>
             </section>
 
             <!-- Tab: Daily Record -->
-            <section id="tab-daily" class="tab-content">
+            <section id="tab-daily" class="tab-content active">
                 <header class="page-header">
                     <h1>日々の記録</h1>
                     <p>本日の進捗を記録し、AIコーチからフィードバックをもらいます。</p>
