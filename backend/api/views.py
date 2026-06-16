@@ -548,14 +548,36 @@ def trigger_voicevox(text: str, speaker_id: int = 47):
             return
             
         wav_url = res_data.get("wavDownloadUrl")
+        audio_status_url = res_data.get("audioStatusUrl")
+
         if not wav_url:
             print("VOICEVOX WebAPI error: wavDownloadUrl not found.")
             return
             
+        if audio_status_url:
+            print(f"Polling audio status at {audio_status_url}")
+            for _ in range(60): # Max wait time: 60 seconds
+                try:
+                    status_res = requests.get(audio_status_url, timeout=10)
+                    status_res.raise_for_status()
+                    status_data = status_res.json()
+                    if status_data.get("isAudioReady"):
+                        print("Audio generation completed.")
+                        break
+                    time.sleep(1)
+                except Exception as poll_e:
+                    print(f"Polling error: {poll_e}")
+                    time.sleep(1)
+
         print(f"Downloading audio file: {wav_url}")
         audio_res = requests.get(wav_url, timeout=30)
         audio_res.raise_for_status()
         
+        # Ensure we actually downloaded an audio file instead of a JSON error
+        if len(audio_res.content) < 1000 and b"{" in audio_res.content[:5]:
+            print(f"VOICEVOX WebAPI downloaded file is invalid (likely an error JSON): {audio_res.content[:100]}")
+            return
+
         from django.conf import settings
         # Use STATIC_ROOT in production to let Nginx serve it, fallback to static directory in development
         if getattr(settings, 'STATIC_ROOT', None):
