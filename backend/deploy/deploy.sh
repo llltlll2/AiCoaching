@@ -16,8 +16,9 @@ sudo apt install python3-pip python3-venv python3-dev sqlite3 nginx git curl -y
 # 2. Setup deploy directory
 echo "[2/6] Setting up directory structures..."
 DEPLOY_DIR="/var/www/aicoaching"
+CURRENT_USER=$(whoami)
 sudo mkdir -p "${DEPLOY_DIR}"
-sudo chown -R ubuntu:www-data "${DEPLOY_DIR}"
+sudo chown -R "${CURRENT_USER}":www-data "${DEPLOY_DIR}"
 
 # Clone the latest codebase into deploy directory
 if [ -d "${DEPLOY_DIR}/.git" ]; then
@@ -76,6 +77,7 @@ echo "[6/6] Setting up system services..."
 
 # Gunicorn
 sudo cp "${DEPLOY_DIR}/backend/deploy/gunicorn.service" /etc/systemd/system/aicoaching.service
+sudo sed -i "s/User=ubuntu/User=${CURRENT_USER}/g" /etc/systemd/system/aicoaching.service
 sudo systemctl daemon-reload
 sudo systemctl start aicoaching
 sudo systemctl enable aicoaching
