@@ -526,8 +526,8 @@ def study_coaching_hub(request):
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-def trigger_voicevox(text: str, speaker_id: int = 47):
-    """Trigger VOICEVOX via public Web API (TTS Quest)"""
+def trigger_voicevox(text: str, speaker_id: int = 47, message_id: str = None):
+    """Trigger VOICEVOX via public Web API (TTS Quest) and save audio file with unique name"""
     try:
         api_url = "https://api.tts.quest/v3/voicevox/synthesis"
         params = {
@@ -539,7 +539,7 @@ def trigger_voicevox(text: str, speaker_id: int = 47):
             params["key"] = api_key
             
         print(f"VOICEVOX WebAPI request: '{text[:15]}...' (Speaker: {speaker_id})")
-        res = requests.get(api_url, params=params, timeout=10)
+        res = requests.get(api_url, params=params, timeout=30)
         res.raise_for_status()
         res_data = res.json()
         
@@ -553,22 +553,27 @@ def trigger_voicevox(text: str, speaker_id: int = 47):
             return
             
         print(f"Downloading audio file: {wav_url}")
-        audio_res = requests.get(wav_url, timeout=30)
+        audio_res = requests.get(wav_url, timeout=60)
         audio_res.raise_for_status()
         
         from django.conf import settings
-        # Use STATIC_ROOT in production to let Nginx serve it, fallback to static directory in development
         if getattr(settings, 'STATIC_ROOT', None):
             static_dir = str(settings.STATIC_ROOT)
         else:
             static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
             
         os.makedirs(static_dir, exist_ok=True)
-        wav_path = os.path.join(static_dir, "current_coaching.wav")
+        
+        if message_id:
+            filename = f"coaching_{message_id}.wav"
+        else:
+            filename = "current_coaching.wav"
+            
+        wav_path = os.path.join(static_dir, filename)
         
         with open(wav_path, "wb") as f:
             f.write(audio_res.content)
-        print("Audio file saved successfully.")
+        print(f"Audio file saved successfully: {filename}")
     except Exception as e:
         print(f"VOICEVOX error: {e}")
 
@@ -723,7 +728,8 @@ def session_history(request, id):
             "sent_at": m.sent_at.isoformat(),
             "content": m.content,
             "rating": m.rating,
-            "progress_status": m.progress_status
+            "progress_status": m.progress_status,
+            "audio_url": f"/static/coaching_{m.id}.wav" if m.sender_role == 'assistant' else None
         } for m in messages]
         
         return JsonResponse({
@@ -823,9 +829,12 @@ def session_message(request, id):
         )
         
         # 5. synthesis VOICEVOX speech
+        audio_url = None
         if coaching_comment:
             try:
-                trigger_voicevox(coaching_comment, speaker_id)
+                msg_id_str = str(assistant_msg.id)
+                trigger_voicevox(coaching_comment, speaker_id, message_id=msg_id_str)
+                audio_url = f"/static/coaching_{msg_id_str}.wav"
             except Exception as vx_err:
                 print(f"VOICEVOX audio trigger failed: {vx_err}")
                 
@@ -847,7 +856,8 @@ def session_message(request, id):
                 "sent_at": assistant_msg.sent_at.isoformat(),
                 "content": assistant_msg.content,
                 "rating": assistant_msg.rating,
-                "progress_status": assistant_msg.progress_status
+                "progress_status": assistant_msg.progress_status,
+                "audio_url": audio_url
             }
         }, status=201)
         
