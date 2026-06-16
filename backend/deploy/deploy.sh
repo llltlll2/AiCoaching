@@ -43,6 +43,15 @@ pip install -r requirements.txt
 echo "[4/6] Configuring environment variables..."
 ENV_FILE="${DEPLOY_DIR}/backend/.env"
 
+if [ -f "${ENV_FILE}" ]; then
+    # Check if the .env file is corrupted or contains invalid domain references
+    temp_hosts=$(grep "^ALLOWED_HOSTS" "${ENV_FILE}" || true)
+    if [ -z "${temp_hosts}" ] || echo "${temp_hosts}" | grep -q -E "YOUR_DOMAIN|#|Initialize|Settings"; then
+        echo "Detected corrupted or invalid .env file. Removing it to recreate..."
+        rm -f "${ENV_FILE}"
+    fi
+fi
+
 if [ ! -f "${ENV_FILE}" ]; then
     echo "Creating new .env file..."
     read -p "Enter your GEMINI_API_KEY: " gemini_key
