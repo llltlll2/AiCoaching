@@ -69,6 +69,12 @@ EOF
 else
     echo ".env file already exists. Skipping creation."
     user_domain=$(grep "ALLOWED_HOSTS" "${ENV_FILE}" | cut -d'"' -f2 | cut -d',' -f1 | tr -d '\r\n' | xargs)
+    if [ -z "${user_domain}" ]; then
+        user_domain=$(curl -s https://ipinfo.io/ip | tr -d '\r\n')
+        if [ -z "${user_domain}" ]; then
+            user_domain="_"
+        fi
+    fi
 fi
 
 # 5. Initialize Database & Static Assets
@@ -90,13 +96,17 @@ sudo systemctl enable aicoaching
 
 # Nginx
 sudo cp "${DEPLOY_DIR}/backend/deploy/nginx.conf" /etc/nginx/sites-available/aicoaching
+echo "Replacing YOUR_DOMAIN_OR_IP with: '${user_domain}'"
 sudo sed -i "s/YOUR_DOMAIN_OR_IP/${user_domain}/g" /etc/nginx/sites-available/aicoaching
 sudo sed -i 's/\r//g' /etc/nginx/sites-available/aicoaching
 
+echo "--- Generated Nginx Config ---"
+cat /etc/nginx/sites-available/aicoaching
+echo "------------------------------"
+
 # Link and enable site in Nginx
-if [ ! -f /etc/nginx/sites-enabled/aicoaching ]; then
-    sudo ln -s /etc/nginx/sites-available/aicoaching /etc/nginx/sites-enabled/
-fi
+sudo rm -f /etc/nginx/sites-enabled/aicoaching
+sudo ln -s /etc/nginx/sites-available/aicoaching /etc/nginx/sites-enabled/
 
 # Remove default site if exists
 if [ -f /etc/nginx/sites-enabled/default ]; then
