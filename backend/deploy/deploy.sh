@@ -111,7 +111,7 @@ sudo cp "${DEPLOY_DIR}/backend/deploy/gunicorn.service" /etc/systemd/system/aico
 sudo sed -i "s/User=ubuntu/User=${CURRENT_USER}/g" /etc/systemd/system/aicoaching.service
 sudo sed -i 's/\r//g' /etc/systemd/system/aicoaching.service
 sudo systemctl daemon-reload
-sudo systemctl start aicoaching
+sudo systemctl restart aicoaching
 sudo systemctl enable aicoaching
 
 # Nginx
