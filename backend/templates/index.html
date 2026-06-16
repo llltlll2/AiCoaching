@@ -556,6 +556,7 @@
         // Audio Object for our Session Coaching Chat
         const sessionFaustAudio = new Audio();
         let currentSessionId = null;
+        let lastAudioUrl = null;
         let summaryPollInterval = null;
         let lastSummaryText = '';
 
@@ -593,8 +594,8 @@
             playSessionAudioBtn.addEventListener('click', () => {
                 const vol = localStorage.getItem('faust_volume') || '0.5';
                 sessionFaustAudio.volume = parseFloat(vol);
-                sessionFaustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
-                sessionFaustAudio.play().catch(e => alert('音声の再生に失敗しました。VOICEVOXが起動しているか確認してください。'));
+                sessionFaustAudio.src = lastAudioUrl || ('/static/current_coaching.wav?t=' + new Date().getTime());
+                sessionFaustAudio.play().catch(e => alert('音声の再生に失敗しました。'));
             });
         }
 
@@ -712,6 +713,7 @@
         // Render chat messages
         function renderChatHistory(messages) {
             sessionChatHistory.innerHTML = '';
+            lastAudioUrl = null;
             if (messages.length === 0) {
                 sessionChatHistory.innerHTML = `
                     <div class="chat-message ai">
@@ -730,7 +732,13 @@
                 const msgDiv = document.createElement('div');
                 msgDiv.className = `chat-message ${msg.sender_role === 'user' ? 'user' : 'ai'}`;
                 
-                let bubbleHtml = `<div class="chat-bubble">${escapeHTML(msg.content).replace(/\n/g, '<br>')}</div>`;
+                let audioBtnHtml = '';
+                if (msg.sender_role === 'assistant' && msg.audio_url) {
+                    audioBtnHtml = `<button class="msg-audio-play-btn" data-audio-url="${msg.audio_url}" title="音声を再生" style="background: none; border: none; cursor: pointer; color: var(--accent-light); margin-left: 8px; font-size: 1.1rem; padding: 2px 4px; vertical-align: middle;">🔊</button>`;
+                    lastAudioUrl = msg.audio_url; // Track the latest AI audio
+                }
+                
+                let bubbleHtml = `<div class="chat-bubble">${escapeHTML(msg.content).replace(/\n/g, '<br>')}${audioBtnHtml}</div>`;
                 
                 if (msg.sender_role === 'assistant' && (msg.rating || msg.progress_status)) {
                     bubbleHtml += `<div class="chat-feedback-info">`;
@@ -749,6 +757,21 @@
                     <div class="chat-timestamp">${timeStr}</div>
                 `;
                 sessionChatHistory.appendChild(msgDiv);
+            });
+
+            // Set up click listeners for individual message play buttons
+            const playBtns = sessionChatHistory.querySelectorAll('.msg-audio-play-btn');
+            playBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const audioUrl = btn.getAttribute('data-audio-url');
+                    if (audioUrl) {
+                        const vol = localStorage.getItem('faust_volume') || '0.5';
+                        sessionFaustAudio.volume = parseFloat(vol);
+                        sessionFaustAudio.src = audioUrl;
+                        sessionFaustAudio.play().catch(err => console.log('Audio playback failed', err));
+                    }
+                });
             });
 
             if (lastRating) {
@@ -889,7 +912,13 @@
                 const aiMsgDiv = document.createElement('div');
                 aiMsgDiv.className = 'chat-message ai';
                 
-                let bubbleHtml = `<div class="chat-bubble">${escapeHTML(aiMsg.content).replace(/\n/g, '<br>')}</div>`;
+                let audioBtnHtml = '';
+                if (aiMsg.audio_url) {
+                    audioBtnHtml = `<button class="msg-audio-play-btn" data-audio-url="${aiMsg.audio_url}" title="音声を再生" style="background: none; border: none; cursor: pointer; color: var(--accent-light); margin-left: 8px; font-size: 1.1rem; padding: 2px 4px; vertical-align: middle;">🔊</button>`;
+                    lastAudioUrl = aiMsg.audio_url; // Update global lastAudioUrl
+                }
+                
+                let bubbleHtml = `<div class="chat-bubble">${escapeHTML(aiMsg.content).replace(/\n/g, '<br>')}${audioBtnHtml}</div>`;
                 if (aiMsg.rating || aiMsg.progress_status) {
                     bubbleHtml += `<div class="chat-feedback-info">`;
                     if (aiMsg.rating) {
@@ -910,12 +939,31 @@
                 sessionChatHistory.appendChild(aiMsgDiv);
                 sessionChatHistory.scrollTop = sessionChatHistory.scrollHeight;
 
+                // Set up click listener for this new audio button
+                const newPlayBtn = aiMsgDiv.querySelector('.msg-audio-play-btn');
+                if (newPlayBtn) {
+                    newPlayBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const audioUrl = newPlayBtn.getAttribute('data-audio-url');
+                        if (audioUrl) {
+                            const vol = localStorage.getItem('faust_volume') || '0.5';
+                            sessionFaustAudio.volume = parseFloat(vol);
+                            sessionFaustAudio.src = audioUrl;
+                            sessionFaustAudio.play().catch(err => console.log('Audio playback failed', err));
+                        }
+                    });
+                }
+
                 playSessionAudioBtn.style.display = 'inline-block';
 
-                // VOICEVOX audio playback
+                // VOICEVOX audio playback (Auto play)
                 const vol = localStorage.getItem('faust_volume') || '0.5';
                 sessionFaustAudio.volume = parseFloat(vol);
-                sessionFaustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
+                if (aiMsg.audio_url) {
+                    sessionFaustAudio.src = aiMsg.audio_url;
+                } else {
+                    sessionFaustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
+                }
                 sessionFaustAudio.play().catch(e => console.log('Audio playback failed', e));
 
                 // Check for non-blocking asynchronous summary update 3s and 6s after message
