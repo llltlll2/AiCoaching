@@ -895,7 +895,8 @@
                     body: JSON.stringify({
                         content: query,
                         speaker_id: parseInt(speakerId),
-                        trigger_summary: false
+                        trigger_summary: false,
+                        system_prompt: localStorage.getItem('system_prompt') || ''
                     })
                 });
 

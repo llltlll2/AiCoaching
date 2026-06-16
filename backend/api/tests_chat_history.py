@@ -160,10 +160,11 @@ class ChatHistoryAPITests(TestCase):
         self.assertEqual(db_assistant_msg.progress_status, "オブジェクト指向の基本概念について質問があり、学習意欲が高いです。")
         
         # VOICEVOX が呼び出されていること
-        mock_voicevox.assert_called_once_with(
-            "オブジェクト指向は、データと処理を一つの『オブジェクト』としてまとめる考え方です！頑張りましょう！",
-            47
-        )
+        mock_voicevox.assert_called_once()
+        args, kwargs = mock_voicevox.call_args
+        self.assertEqual(args[0], "オブジェクト指向は、データと処理を一つの『オブジェクト』としてまとめる考え方です！頑張りましょう！")
+        self.assertEqual(args[1], 47)
+        self.assertIn('message_id', kwargs)
         
         # trigger_summary=False のため、サマリー要約タスクはキューイングされないこと
         mock_executor.submit.assert_not_called()

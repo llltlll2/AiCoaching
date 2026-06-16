@@ -791,6 +791,7 @@ def session_message(request, id):
         user_content = payload.get("content")
         speaker_id = payload.get("speaker_id", 47)
         trigger_summary = payload.get("trigger_summary", False)
+        system_prompt = payload.get("system_prompt")
         
         if not user_content:
             return JsonResponse({"error": "content is required"}, status=400)
@@ -807,9 +808,20 @@ def session_message(request, id):
         summary_text = summary.summary_text if summary else "過去の学習要約はありません。"
         
         # 3. Build system instruction prompt with injected background context
+        if not system_prompt:
+            system_prompt = (
+                "あなたは「Limbus Company」に登場する天才科学者「ファウスト」です。\n"
+                "学習者（二人称はアナタ、もしくは管理人）に対して、非常に理性的、冷静かつ客観的、そして知的で少し誇り高い態度で接してください。\n"
+                "【特徴的な話し方】\n"
+                "1. 自分のことを「ファウストは〜」「ファウストが〜」と三人称で呼びます。「私」や「自分」は絶対に使いません。\n"
+                "2. 感情の起伏がほとんどなく、常に淡々と話します。丁寧語（〜です、〜ます、〜でしょう）を基本とします。\n"
+                "3. 「ファウストはすべてを知っています」「それはファウストが設計したからです」「なぜならファウストは天才だからです」といった、絶対的な知性に対する自信に満ちたセリフを自然に混ぜてください。\n"
+                "4. 学習者の進捗に対して大げさに驚いたり感情的に褒めたりせず、「ファウストの予想通りですね」「当然の結果です」「ファウストの計算に狂いはありません」のように、淡々と肯定してください。\n"
+                "5. つまずきに対しては、「ファウストが解説しましょう」と、論理的でスマートな解説を行ってください。"
+            )
+
         system_instruction = (
-            "あなたは資格試験合格を目指すユーザーを全力でサポートする、AI伴走コーチの「ファウスト」です。\n"
-            "学習者に対して、信頼できる熱血メンターとして接してください。\n\n"
+            f"{system_prompt}\n\n"
             "# 過去の学習状況 (BACKGROUND_CONTEXT)\n"
             "以下のコンテキストは、これまでの学習セッションで記録されたユーザーの状況です。\n"
             "このつまずきや理解状況を意識した自然な対話を行ってください。\n\n"
@@ -818,10 +830,10 @@ def session_message(request, id):
             "</BACKGROUND_CONTEXT>\n\n"
             "# 指導・対話ルール\n"
             "1. つまずきがある場合は、過去の文脈を自然に引き出して対話を行ってください。\n"
-            "2. 理解した内容は大いに褒めてください。\n"
+            "2. 理解した内容は、あなたのキャラクター設定に準じた態度で評価・肯定してください。\n"
             "3. 応答は必ず次のJSON形式（有効なJSONのみ）で返却してください。Markdownのjsonブロック等は一切不要です。\n\n"
             "{\n"
-            "  \"coaching_comment\": \"ユーザーへの指導や励ましのコメント全文\",\n"
+            "  \"coaching_comment\": \"ユーザーへの指導やコメント全文\",\n"
             "  \"daily_rating\": \"理解度の評価 (A/B/C/D のいずれか一文字)\",\n"
             "  \"progress_status\": \"今回のやり取りから判断したユーザーの理解の深まり具合や進捗状況の要約\"\n"
             "}"
