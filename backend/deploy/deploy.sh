@@ -111,6 +111,12 @@ sudo cp "${DEPLOY_DIR}/backend/deploy/gunicorn.service" /etc/systemd/system/aico
 sudo sed -i "s/User=ubuntu/User=${CURRENT_USER}/g" /etc/systemd/system/aicoaching.service
 sudo sed -i 's/\r//g' /etc/systemd/system/aicoaching.service
 sudo systemctl daemon-reload
+
+# Stop service and kill any remaining zombie/orphan gunicorn processes to ensure clean restart
+echo "Cleaning up any existing Gunicorn processes..."
+sudo systemctl stop aicoaching || true
+sudo kill -9 $(pgrep gunicorn) 2>/dev/null || true
+
 sudo systemctl restart aicoaching
 sudo systemctl enable aicoaching
 
