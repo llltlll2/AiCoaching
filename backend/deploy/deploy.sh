@@ -55,6 +55,7 @@ fi
 if [ ! -f "${ENV_FILE}" ]; then
     echo "Creating new .env file..."
     read -p "Enter your GEMINI_API_KEY: " gemini_key
+    read -p "Enter your TTS_QUEST_API_KEY (optional, press Enter to skip): " tts_key
     read -p "Enter your domain name (or press Enter to use server IP): " user_domain
     user_domain=$(echo "${user_domain}" | tr -d '\r\n' | xargs)
     
@@ -71,6 +72,7 @@ if [ ! -f "${ENV_FILE}" ]; then
 
     cat <<EOF > "${ENV_FILE}"
 GEMINI_API_KEY="${gemini_key}"
+TTS_QUEST_API_KEY="${tts_key}"
 SECRET_KEY="${secret_key}"
 DEBUG=False
 ALLOWED_HOSTS="${user_domain},localhost,127.0.0.1"
@@ -84,6 +86,15 @@ else
             user_domain="_"
         fi
     fi
+fi
+
+# Check if TTS_QUEST_API_KEY is defined in the existing .env file, if not, ask and append it
+if ! grep -q "TTS_QUEST_API_KEY" "${ENV_FILE}"; then
+    echo "TTS_QUEST_API_KEY is not configured in the existing .env file."
+    read -p "Enter your TTS_QUEST_API_KEY (optional, press Enter to skip): " tts_key
+    # Clean up tts_key and write to .env
+    tts_key=$(echo "${tts_key}" | tr -d '\r\n' | xargs)
+    echo "TTS_QUEST_API_KEY=\"${tts_key}\"" >> "${ENV_FILE}"
 fi
 
 # 5. Initialize Database & Static Assets
