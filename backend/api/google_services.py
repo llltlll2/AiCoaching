@@ -90,6 +90,25 @@ def get_personalities(spreadsheet_id):
     """
     AIコーチ設定シートから性格のリストを取得する
     """
+    default_prompt = (
+        "あなたは「Limbus Company」に登場する天才科学者「ファウスト」です。\n"
+        "学習者（二人称はアナタ、もしくは管理人）に対して、非常に理性的、冷静かつ客観的、そして知的で少し誇り高い態度で接してください。\n"
+        "【特徴的な話し方】\n"
+        "1. 自分のことを「ファウストは〜」「ファウストが〜」と三人称で呼びます。「私」や「自分」は絶対に使いません。\n"
+        "2. 感情の起伏がほとんどなく、常に淡々と話します。丁寧語（〜です、〜ます、〜でしょう）を基本とします。\n"
+        "3. 「ファウストはすべてを知っています」「それはファウストが設計したからです」「なぜならファウストは天才だからです」といった、絶対的な知性に対する自信に満ちたセリフを自然に混ぜてください。\n"
+        "4. 学習者の進捗に対して大げさに驚いたり感情的に褒めたりせず、「ファウストの予想通りですね」「当然の結果です」「ファウストの計算に狂いはありません」のように、淡々と肯定してください。\n"
+        "5. つまずきに対しては、「ファウストが解説しましょう」と、論理的でスマートな解説を行ってください。"
+    )
+    fallback_personalities = [
+        {"name": "デフォルト（ファウスト）", "prompt": default_prompt, "voice_id": 47}, 
+        {"name": "厳格なスパルタコーチ", "prompt": "あなたは学習者を厳しく鍛え上げるスパルタコーチです。一切の甘えを許さず、厳しい言葉でモチベーションを煽ります。敬語は使いません。", "voice_id": 11},
+        {"name": "優しいお姉さん", "prompt": "あなたは学習者を優しく包み込むお姉さんです。「〜だね」「〜してね」といった柔らかい口調で、学習者を常に褒めて励まします。", "voice_id": 8}
+    ]
+
+    if not spreadsheet_id:
+        return fallback_personalities
+
     try:
         client = get_gspread_client()
         sh = client.open_by_key(spreadsheet_id)
@@ -98,23 +117,10 @@ def get_personalities(spreadsheet_id):
         except gspread.exceptions.WorksheetNotFound:
             sheet = sh.add_worksheet(title="AIコーチ設定", rows="100", cols="5")
             sheet.append_row(["性格名", "プロンプト", "デフォルト音声ID"])
-            # デフォルト設定を追加
-            default_prompt = (
-                "あなたは「Limbus Company」に登場する天才科学者「ファウスト」です。\n"
-                "学習者（二人称はアナタ、もしくは管理人）に対して、非常に理性的、冷静かつ客観的、そして知的で少し誇り高い態度で接してください。\n"
-                "【特徴的な話し方】\n"
-                "1. 自分のことを「ファウストは〜」「ファウストが〜」と三人称で呼びます。「私」や「自分」は絶対に使いません。\n"
-                "2. 感情の起伏がほとんどなく、常に淡々と話します。丁寧語（〜です、〜ます、〜でしょう）を基本とします。\n"
-                "3. 「ファウストはすべてを知っています」「それはファウストが設計したからです」「なぜならファウストは天才だからです」といった、絶対的な知性に対する自信に満ちたセリフを自然に混ぜてください。\n"
-                "4. 学習者の進捗に対して大げさに驚いたり感情的に褒めたりせず、「ファウストの予想通りですね」「当然の結果です」「ファウストの計算に狂いはありません」のように、淡々と肯定してください。\n"
-                "5. つまずきに対しては、「ファウストが解説しましょう」と、論理的でスマートな解説を行ってください。"
-            )
             sheet.append_row(["デフォルト（ファウスト）", default_prompt, 47])
-            sheet.append_row(["厳格なスパルタコーチ", "あなたは学習者を厳しく鍛え上げるスパルタコーチです。一切の甘えを許さず、厳しい言葉でモチベーションを煽ります。敬語は使いません。", 11])
-            sheet.append_row(["優しいお姉さん", "あなたは学習者を優しく包み込むお姉さんです。「〜だね」「〜してね」といった柔らかい口調で、学習者を常に褒めて励まします。", 8])
-            return [{"name": "デフォルト（ファウスト）", "prompt": default_prompt, "voice_id": 47}, 
-                    {"name": "厳格なスパルタコーチ", "prompt": "あなたは学習者を厳しく鍛え上げるスパルタコーチです。一切の甘えを許さず、厳しい言葉でモチベーションを煽ります。敬語は使いません。", "voice_id": 11},
-                    {"name": "優しいお姉さん", "prompt": "あなたは学習者を優しく包み込むお姉さんです。「〜だね」「〜してね」といった柔らかい口調で、学習者を常に褒めて励まします。", "voice_id": 8}]
+            sheet.append_row(["厳格なスパルタコーチ", fallback_personalities[1]["prompt"], 11])
+            sheet.append_row(["優しいお姉さん", fallback_personalities[2]["prompt"], 8])
+            return fallback_personalities
             
         records = sheet.get_all_records()
         personalities = []
@@ -125,10 +131,10 @@ def get_personalities(spreadsheet_id):
                     "prompt": str(r.get("プロンプト", "")).strip(),
                     "voice_id": str(r.get("デフォルト音声ID", "")).strip() or "47"
                 })
-        return personalities
+        return personalities if personalities else fallback_personalities
     except Exception as e:
         print(f"Failed to fetch personalities: {e}")
-        return []
+        return fallback_personalities
 
 def get_past_contents(spreadsheet_id):
     """

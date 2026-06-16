@@ -155,23 +155,43 @@
         }
 
         @media (max-width: 768px) {
+            .session-sidebar {
+                max-height: 200px !important;
+            }
+            .session-sidebar .sidebar-header {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                padding-bottom: 8px !important;
+                margin-bottom: 8px !important;
+            }
+            .session-sidebar .sidebar-header h3 {
+                margin-bottom: 0 !important;
+                font-size: 0.95rem !important;
+            }
+            .session-sidebar .sidebar-header button {
+                padding: 6px 12px !important;
+                font-size: 0.8rem !important;
+            }
             .session-list-container {
                 flex-direction: row !important;
-                overflow-x: auto;
-                white-space: nowrap;
-                padding-bottom: 8px;
-                gap: 10px;
-                -webkit-overflow-scrolling: touch;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                white-space: nowrap !important;
+                padding-bottom: 8px !important;
+                gap: 10px !important;
+                -webkit-overflow-scrolling: touch !important;
+                height: 75px !important;
             }
             .session-list-container::-webkit-scrollbar {
                 display: none;
             }
             .session-item {
-                flex: 0 0 160px;
-                margin-bottom: 0;
-            }
-            .session-sidebar {
-                max-height: 140px !important;
+                flex: 0 0 160px !important;
+                margin-bottom: 0 !important;
+                display: inline-block !important;
+                height: 65px !important;
+                box-sizing: border-box !important;
             }
         }
     </style>
