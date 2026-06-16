@@ -46,10 +46,14 @@ if [ ! -f "${ENV_FILE}" ]; then
     echo "Creating new .env file..."
     read -p "Enter your GEMINI_API_KEY: " gemini_key
     read -p "Enter your domain name (or press Enter to use server IP): " user_domain
+    user_domain=$(echo "${user_domain}" | tr -d '\r\n' | xargs)
     
     # Get current external IP if no domain is provided
     if [ -z "${user_domain}" ]; then
-        user_domain=$(curl -s https://ipinfo.io/ip)
+        user_domain=$(curl -s https://ipinfo.io/ip | tr -d '\r\n')
+        if [ -z "${user_domain}" ]; then
+            user_domain="_"
+        fi
         echo "Using server IP as domain: ${user_domain}"
     fi
 
@@ -63,7 +67,7 @@ ALLOWED_HOSTS="${user_domain},localhost,127.0.0.1"
 EOF
 else
     echo ".env file already exists. Skipping creation."
-    user_domain=$(grep "ALLOWED_HOSTS" "${ENV_FILE}" | cut -d'"' -f2 | cut -d',' -f1)
+    user_domain=$(grep "ALLOWED_HOSTS" "${ENV_FILE}" | cut -d'"' -f2 | cut -d',' -f1 | tr -d '\r\n' | xargs)
 fi
 
 # 5. Initialize Database & Static Assets
