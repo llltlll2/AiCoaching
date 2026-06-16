@@ -9,6 +9,172 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        /* Session Chat Page Styles */
+        .session-chat-layout {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            height: 600px;
+        }
+
+        .session-sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-main-pane {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .summary-pane {
+            width: 320px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .session-list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 5px;
+        }
+
+        .session-item {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .session-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .session-item.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--accent-blue);
+        }
+
+        .session-item-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .session-item-date {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .session-item-status {
+            font-size: 0.65rem;
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            margin-top: 4px;
+            width: fit-content;
+        }
+
+        /* Chat feedback & rating styling */
+        .chat-feedback-info {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-blue);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .chat-feedback-rating {
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-right: 8px;
+        }
+
+        /* Summary Markdown styling */
+        .summary-content h1, .summary-content h2, .summary-content h3 {
+            color: var(--text-primary);
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 4px;
+        }
+
+        .summary-content ul, .summary-content ol {
+            margin-left: 18px;
+            margin-bottom: 10px;
+            padding-left: 0;
+        }
+
+        .summary-content li {
+            margin-bottom: 5px;
+        }
+
+        .summary-content p {
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 1024px) {
+            .session-chat-layout {
+                flex-direction: column;
+                height: auto;
+            }
+            .session-sidebar, .summary-pane {
+                width: 100%;
+                height: auto !important;
+            }
+            .session-sidebar {
+                max-height: 220px;
+            }
+            .summary-pane {
+                max-height: 300px;
+            }
+            .chat-main-pane {
+                height: 500px !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .session-list-container {
+                flex-direction: row !important;
+                overflow-x: auto;
+                white-space: nowrap;
+                padding-bottom: 8px;
+                gap: 10px;
+                -webkit-overflow-scrolling: touch;
+            }
+            .session-list-container::-webkit-scrollbar {
+                display: none;
+            }
+            .session-item {
+                flex: 0 0 160px;
+                margin-bottom: 0;
+            }
+            .session-sidebar {
+                max-height: 140px !important;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -20,6 +186,7 @@
             </div>
             <ul class="nav-links">
                 <li class="active" data-tab="tab-daily">📝 日々の記録</li>
+                <li data-tab="tab-session-chat">💬 AIコーチ対話</li>
                 <li data-tab="tab-quiz">🎓 小テスト</li>
                 <li data-tab="tab-weak">🔥 弱点特訓</li>
                 <li data-tab="tab-plan">📋 学習計画</li>
@@ -81,6 +248,69 @@
                             </div>
                         </div>
                         <button class="btn-primary mt-20" id="sync-plan-btn" style="width: 100%; display: none;">この計画で確定しカレンダーに登録する</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Session Chat -->
+            <section id="tab-session-chat" class="tab-content">
+                <header class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>AIコーチ伴走対話</h1>
+                        <p>AIコーチ「ファウスト」との対話履歴を保存し、あなたのつまずきや理解度を記憶したコーチングを行います。</p>
+                    </div>
+                    <div>
+                        <button id="toggle-summary-btn" class="btn-secondary active" style="margin: 0;">🧠 理解要約を非表示</button>
+                    </div>
+                </header>
+
+                <div class="session-chat-layout">
+                    <!-- 左カラム: セッション（学習履歴）一覧 -->
+                    <div class="glass-card session-sidebar">
+                        <div class="sidebar-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 10px;">
+                            <h3 style="margin-bottom: 10px; font-size: 1.1rem;">学習履歴</h3>
+                            <button id="new-session-btn" class="btn-primary" style="padding: 10px; font-size: 0.9rem; margin: 0;">＋ 新規セッション</button>
+                        </div>
+                        <div id="session-list" class="session-list-container" style="flex: 1; overflow-y: auto;">
+                            <div style="color: var(--text-secondary); text-align: center; margin-top: 20px; font-size: 0.85rem;">セッションをロード中...</div>
+                        </div>
+                    </div>
+
+                    <!-- 中央カラム: チャット画面 -->
+                    <div class="glass-card chat-main-pane">
+                        <div class="chat-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <h3 id="current-session-title" style="margin: 0; font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;">セッションを選択してください</h3>
+                            <div id="session-rating-container" style="display: none;">
+                                <span id="session-rating-badge" class="rating-badge" style="margin: 0;">評価: --</span>
+                            </div>
+                        </div>
+                        <div class="chat-container" style="flex: 1; display: flex; flex-direction: column; margin-bottom: 0; border: none; background: transparent;">
+                            <div id="session-chat-history" class="chat-history" style="flex: 1; overflow-y: auto; padding: 10px 0;">
+                                <div class="chat-message ai">
+                                    <div class="chat-bubble">左側の「学習履歴」からセッションを選択するか、「新規セッション」を作成してください。過去の学習コンテキストを引き継いで会話が開始されます。</div>
+                                </div>
+                            </div>
+                            <div class="chat-input-area" style="padding: 10px 0 0 0;">
+                                <textarea id="session-chat-query" rows="2" placeholder="AIコーチにメッセージを送信... (Ctrl+Enterで送信)" disabled style="flex: 1;"></textarea>
+                                <button class="btn-primary" id="session-chat-send-btn" title="送信する" disabled style="padding: 10px 15px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div style="text-align: center; margin-top: 10px; display: flex; justify-content: center; gap: 10px;">
+                            <button id="play-session-audio-btn" class="btn-secondary" style="background-color: var(--accent-purple); font-size: 0.85rem; padding: 5px 12px; display: none;">🔊 最新の音声を再生する</button>
+                        </div>
+                    </div>
+
+                    <!-- 右カラム: AIコーチの理解状況 -->
+                    <div class="glass-card summary-pane" id="summary-pane">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 10px;">
+                            <h3 style="margin: 0; font-size: 1.1rem;">🧠 コーチの理解状況</h3>
+                            <button id="refresh-summary-btn" class="btn-secondary" style="padding: 4px 8px; font-size: 0.75rem; margin: 0;" title="手動更新">🔄 更新</button>
+                        </div>
+                        <div id="session-summary-container" class="summary-content" style="flex: 1; overflow-y: auto; font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary);">
+                            <p style="text-align: center; margin-top: 20px;">セッションが選択されると、AIコーチが把握している「つまずきポイント」や「理解度」の要約コンテキストがここに表示されます。</p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -319,6 +549,445 @@
 
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="/static/js/app.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Audio Object for our Session Coaching Chat
+        const sessionFaustAudio = new Audio();
+        let currentSessionId = null;
+        let summaryPollInterval = null;
+        let lastSummaryText = '';
+
+        const newSessionBtn = document.getElementById('new-session-btn');
+        const sessionList = document.getElementById('session-list');
+        const currentSessionTitle = document.getElementById('current-session-title');
+        const sessionChatHistory = document.getElementById('session-chat-history');
+        const sessionChatQuery = document.getElementById('session-chat-query');
+        const sessionChatSendBtn = document.getElementById('session-chat-send-btn');
+        const sessionSummaryContainer = document.getElementById('session-summary-container');
+        const refreshSummaryBtn = document.getElementById('refresh-summary-btn');
+        const toggleSummaryBtn = document.getElementById('toggle-summary-btn');
+        const summaryPane = document.getElementById('summary-pane');
+        const playSessionAudioBtn = document.getElementById('play-session-audio-btn');
+        const sessionRatingContainer = document.getElementById('session-rating-container');
+        const sessionRatingBadge = document.getElementById('session-rating-badge');
+
+        // Toggle Summary Pane Drawer
+        if (toggleSummaryBtn && summaryPane) {
+            toggleSummaryBtn.addEventListener('click', () => {
+                if (summaryPane.style.display === 'none') {
+                    summaryPane.style.display = 'flex';
+                    toggleSummaryBtn.classList.add('active');
+                    toggleSummaryBtn.textContent = '🧠 理解要約を非表示';
+                } else {
+                    summaryPane.style.display = 'none';
+                    toggleSummaryBtn.classList.remove('active');
+                    toggleSummaryBtn.textContent = '🧠 理解要約を表示';
+                }
+            });
+        }
+
+        // VOICEVOX Manual Playback
+        if (playSessionAudioBtn) {
+            playSessionAudioBtn.addEventListener('click', () => {
+                const vol = localStorage.getItem('faust_volume') || '0.5';
+                sessionFaustAudio.volume = parseFloat(vol);
+                sessionFaustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
+                sessionFaustAudio.play().catch(e => alert('音声の再生に失敗しました。VOICEVOXが起動しているか確認してください。'));
+            });
+        }
+
+        // Fetch session list
+        async function fetchSessions() {
+            try {
+                const res = await fetch('/api/sessions/');
+                if (!res.ok) throw new Error('Failed to fetch sessions');
+                const data = await res.json();
+                renderSessions(data);
+            } catch (err) {
+                console.error(err);
+                sessionList.innerHTML = `<div style="color: var(--danger); text-align: center; padding: 20px;">セッションの取得に失敗しました。</div>`;
+            }
+        }
+
+        // Render session list
+        function renderSessions(sessions) {
+            sessionList.innerHTML = '';
+            if (sessions.length === 0) {
+                sessionList.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 20px; font-size: 0.85rem;">セッションがありません。「新規セッション」を作成してください。</div>`;
+                return;
+            }
+
+            sessions.forEach(session => {
+                const date = new Date(session.created_at);
+                const dateStr = `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+                
+                const div = document.createElement('div');
+                div.className = `session-item ${currentSessionId === session.id ? 'active' : ''}`;
+                div.dataset.id = session.id;
+                div.innerHTML = `
+                    <div class="session-item-title">${escapeHTML(session.certification_name)}</div>
+                    <div class="session-item-date">${dateStr}</div>
+                    <div class="session-item-status">${escapeHTML(session.status)}</div>
+                `;
+                
+                div.addEventListener('click', () => selectSession(session.id, session.certification_name));
+                sessionList.appendChild(div);
+            });
+        }
+
+        // Create new session
+        if (newSessionBtn) {
+            newSessionBtn.addEventListener('click', async () => {
+                const certName = prompt('目標とする資格名、または学習テーマを入力してください：\n(例: 応用情報技術者試験, 基本情報技術者)');
+                if (!certName) return;
+                
+                newSessionBtn.disabled = true;
+                newSessionBtn.textContent = '作成中...';
+                
+                try {
+                    const res = await fetch('/api/sessions/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ certification_name: certName })
+                    });
+                    
+                    if (!res.ok) throw new Error('Failed to create session');
+                    const data = await res.json();
+                    
+                    await fetchSessions();
+                    selectSession(data.id, data.certification_name);
+                } catch (err) {
+                    alert('セッションの作成に失敗しました。');
+                    console.error(err);
+                } finally {
+                    newSessionBtn.disabled = false;
+                    newSessionBtn.textContent = '＋ 新規セッション';
+                }
+            });
+        }
+
+        // Select session and load history
+        async function selectSession(sessionId, certName) {
+            currentSessionId = sessionId;
+            
+            document.querySelectorAll('.session-item').forEach(item => {
+                if (item.dataset.id === sessionId) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            currentSessionTitle.textContent = certName;
+            sessionChatQuery.disabled = false;
+            sessionChatSendBtn.disabled = false;
+            sessionChatHistory.innerHTML = `<div style="color: var(--text-secondary); text-align: center; margin-top: 20px;">履歴をロード中...</div>`;
+            sessionSummaryContainer.innerHTML = `<p style="text-align: center; margin-top: 20px;">要約をロード中...</p>`;
+            sessionRatingContainer.style.display = 'none';
+            playSessionAudioBtn.style.display = 'none';
+
+            if (summaryPollInterval) {
+                clearInterval(summaryPollInterval);
+                summaryPollInterval = null;
+            }
+
+            try {
+                const res = await fetch(`/api/sessions/${sessionId}/history/`);
+                if (!res.ok) throw new Error('Failed to fetch history');
+                const data = await res.json();
+
+                renderChatHistory(data.messages);
+                renderSummary(data.summary);
+                
+                startSummaryPolling(sessionId);
+            } catch (err) {
+                console.error(err);
+                sessionChatHistory.innerHTML = `<div style="color: var(--danger); text-align: center; margin-top: 20px;">履歴の読み込みに失敗しました。</div>`;
+                sessionSummaryContainer.innerHTML = `<p style="color: var(--danger); text-align: center; margin-top: 20px;">要約の読み込みに失敗しました。</p>`;
+            }
+        }
+
+        // Render chat messages
+        function renderChatHistory(messages) {
+            sessionChatHistory.innerHTML = '';
+            if (messages.length === 0) {
+                sessionChatHistory.innerHTML = `
+                    <div class="chat-message ai">
+                        <div class="chat-bubble">AIコーチ「ファウスト」との対話を開始しましょう！メッセージを入力して送信してください。</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let lastRating = null;
+
+            messages.forEach(msg => {
+                const time = new Date(msg.sent_at);
+                const timeStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`;
+                
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `chat-message ${msg.sender_role === 'user' ? 'user' : 'ai'}`;
+                
+                let bubbleHtml = `<div class="chat-bubble">${escapeHTML(msg.content).replace(/\n/g, '<br>')}</div>`;
+                
+                if (msg.sender_role === 'assistant' && (msg.rating || msg.progress_status)) {
+                    bubbleHtml += `<div class="chat-feedback-info">`;
+                    if (msg.rating) {
+                        bubbleHtml += `<span class="chat-feedback-rating">評価: ${escapeHTML(msg.rating)}</span>`;
+                        lastRating = msg.rating;
+                    }
+                    if (msg.progress_status) {
+                        bubbleHtml += `<span>進捗: ${escapeHTML(msg.progress_status)}</span>`;
+                    }
+                    bubbleHtml += `</div>`;
+                }
+                
+                msgDiv.innerHTML = `
+                    ${bubbleHtml}
+                    <div class="chat-timestamp">${timeStr}</div>
+                `;
+                sessionChatHistory.appendChild(msgDiv);
+            });
+
+            if (lastRating) {
+                sessionRatingBadge.textContent = `評価: ${lastRating}`;
+                sessionRatingContainer.style.display = 'block';
+            } else {
+                sessionRatingContainer.style.display = 'none';
+            }
+
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg && lastMsg.sender_role === 'assistant') {
+                playSessionAudioBtn.style.display = 'inline-block';
+            } else {
+                playSessionAudioBtn.style.display = 'none';
+            }
+
+            sessionChatHistory.scrollTop = sessionChatHistory.scrollHeight;
+        }
+
+        // Render summary text using marked.js
+        function renderSummary(summary) {
+            if (!summary || !summary.summary_text) {
+                sessionSummaryContainer.innerHTML = `<p style="text-align: center; margin-top: 20px; color: var(--text-secondary);">過去の学習要約はありません。対話を進めると、AIコーチによる理解状況の要約がここに自動生成されます（3往復ごと）。</p>`;
+                lastSummaryText = '';
+                return;
+            }
+
+            lastSummaryText = summary.summary_text;
+            
+            try {
+                sessionSummaryContainer.innerHTML = marked.parse(summary.summary_text);
+            } catch (e) {
+                sessionSummaryContainer.textContent = summary.summary_text;
+            }
+        }
+
+        // Manual refresh summary
+        if (refreshSummaryBtn) {
+            refreshSummaryBtn.addEventListener('click', async () => {
+                if (!currentSessionId) return;
+                refreshSummaryBtn.disabled = true;
+                const originalText = refreshSummaryBtn.textContent;
+                refreshSummaryBtn.textContent = '🔄...';
+                try {
+                    const res = await fetch(`/api/sessions/${currentSessionId}/history/`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        renderSummary(data.summary);
+                    }
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    refreshSummaryBtn.disabled = false;
+                    refreshSummaryBtn.textContent = originalText;
+                }
+            });
+        }
+
+        // Poll for summary changes periodically
+        function startSummaryPolling(sessionId) {
+            if (summaryPollInterval) clearInterval(summaryPollInterval);
+            
+            summaryPollInterval = setInterval(async () => {
+                if (currentSessionId !== sessionId) {
+                    clearInterval(summaryPollInterval);
+                    return;
+                }
+                try {
+                    const res = await fetch(`/api/sessions/${sessionId}/history/`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.summary && data.summary.summary_text !== lastSummaryText) {
+                            renderSummary(data.summary);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Summary poll error:', e);
+                }
+            }, 10000);
+        }
+
+        // Send chat message
+        async function handleSend() {
+            const query = sessionChatQuery.value.trim();
+            if (!query || !currentSessionId) return;
+
+            sessionChatQuery.value = '';
+            sessionChatQuery.disabled = true;
+            sessionChatSendBtn.disabled = true;
+
+            // Unlock audio
+            sessionFaustAudio.volume = 0;
+            sessionFaustAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+            sessionFaustAudio.play().catch(e => {});
+
+            // Append user message immediately
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'chat-message user';
+            userMsgDiv.innerHTML = `
+                <div class="chat-bubble">${escapeHTML(query).replace(/\n/g, '<br>')}</div>
+                <div class="chat-timestamp">${timeStr}</div>
+            `;
+            sessionChatHistory.appendChild(userMsgDiv);
+            sessionChatHistory.scrollTop = sessionChatHistory.scrollHeight;
+
+            // Typing indicator
+            const indicator = document.createElement('div');
+            indicator.id = 'session-typing-indicator';
+            indicator.className = 'chat-message ai';
+            indicator.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+            sessionChatHistory.appendChild(indicator);
+            sessionChatHistory.scrollTop = sessionChatHistory.scrollHeight;
+
+            try {
+                const speakerId = localStorage.getItem('speaker_id') || '47';
+                const res = await fetch(`/api/sessions/${currentSessionId}/message/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: query,
+                        speaker_id: parseInt(speakerId),
+                        trigger_summary: false
+                    })
+                });
+
+                if (!res.ok) throw new Error('Message sending failed');
+                const data = await res.json();
+
+                const typingInd = document.getElementById('session-typing-indicator');
+                if (typingInd) typingInd.remove();
+
+                const aiMsg = data.assistant_message;
+                const aiTime = new Date(aiMsg.sent_at);
+                const aiTimeStr = `${String(aiTime.getHours()).padStart(2, '0')}:${String(aiTime.getMinutes()).padStart(2, '0')}`;
+                
+                const aiMsgDiv = document.createElement('div');
+                aiMsgDiv.className = 'chat-message ai';
+                
+                let bubbleHtml = `<div class="chat-bubble">${escapeHTML(aiMsg.content).replace(/\n/g, '<br>')}</div>`;
+                if (aiMsg.rating || aiMsg.progress_status) {
+                    bubbleHtml += `<div class="chat-feedback-info">`;
+                    if (aiMsg.rating) {
+                        bubbleHtml += `<span class="chat-feedback-rating">評価: ${escapeHTML(aiMsg.rating)}</span>`;
+                        sessionRatingBadge.textContent = `評価: ${aiMsg.rating}`;
+                        sessionRatingContainer.style.display = 'block';
+                    }
+                    if (aiMsg.progress_status) {
+                        bubbleHtml += `<span>進捗: ${escapeHTML(aiMsg.progress_status)}</span>`;
+                    }
+                    bubbleHtml += `</div>`;
+                }
+
+                aiMsgDiv.innerHTML = `
+                    ${bubbleHtml}
+                    <div class="chat-timestamp">${aiTimeStr}</div>
+                `;
+                sessionChatHistory.appendChild(aiMsgDiv);
+                sessionChatHistory.scrollTop = sessionChatHistory.scrollHeight;
+
+                playSessionAudioBtn.style.display = 'inline-block';
+
+                // VOICEVOX audio playback
+                const vol = localStorage.getItem('faust_volume') || '0.5';
+                sessionFaustAudio.volume = parseFloat(vol);
+                sessionFaustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
+                sessionFaustAudio.play().catch(e => console.log('Audio playback failed', e));
+
+                // Check for non-blocking asynchronous summary update 3s and 6s after message
+                setTimeout(async () => {
+                    if (currentSessionId !== data.user_message.session) return;
+                    const checkRes = await fetch(`/api/sessions/${currentSessionId}/history/`);
+                    if (checkRes.ok) {
+                        const checkData = await checkRes.json();
+                        renderSummary(checkData.summary);
+                    }
+                }, 3000);
+                
+                setTimeout(async () => {
+                    if (currentSessionId !== data.user_message.session) return;
+                    const checkRes = await fetch(`/api/sessions/${currentSessionId}/history/`);
+                    if (checkRes.ok) {
+                        const checkData = await checkRes.json();
+                        renderSummary(checkData.summary);
+                    }
+                }, 6000);
+
+            } catch (err) {
+                console.error(err);
+                const typingInd = document.getElementById('session-typing-indicator');
+                if (typingInd) typingInd.remove();
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'chat-message ai';
+                errorDiv.innerHTML = `<div class="chat-bubble" style="color: var(--danger);">メッセージの送信に失敗しました。再試行してください。</div>`;
+                sessionChatHistory.appendChild(errorDiv);
+                sessionChatHistory.scrollTop = sessionChatHistory.scrollHeight;
+            } finally {
+                sessionChatQuery.disabled = false;
+                sessionChatSendBtn.disabled = false;
+                sessionChatQuery.focus();
+            }
+        }
+
+        if (sessionChatSendBtn) {
+            sessionChatSendBtn.addEventListener('click', handleSend);
+        }
+
+        if (sessionChatQuery) {
+            sessionChatQuery.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+        }
+
+        // Reload sessions when user clicks the session tab link to keep list fresh
+        const tabLink = document.querySelector('.nav-links li[data-tab="tab-session-chat"]');
+        if (tabLink) {
+            tabLink.addEventListener('click', () => {
+                fetchSessions();
+            });
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Initial fetch on page load
+        fetchSessions();
+    });
+    </script>
 </body>
 </html>

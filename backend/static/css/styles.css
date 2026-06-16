@@ -305,25 +305,31 @@ button {
     .nav-links { 
         display: flex; 
         width: 100%;
-        justify-content: space-around; 
+        justify-content: flex-start; 
         margin: 0; 
-        padding: 0;
+        padding: 0 0.5rem;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        gap: 8px;
+    }
+    .nav-links::-webkit-scrollbar {
+        display: none; /* Hide scrollbar for a cleaner mobile interface */
     }
     .nav-links li { 
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 0.5rem;
+        display: inline-block;
+        flex: 0 0 auto;
+        padding: 0.6rem 1rem;
         margin: 0;
-        font-size: 0.65rem; /* Small text */
-        font-weight: bold;
+        font-size: 0.8rem; /* Keep text legible without wrapping or squishing */
+        font-weight: 500;
         border-radius: 8px;
         border-left: none; /* Remove left border from desktop active state */
     }
     .nav-links li.active {
         border-left: none;
         border-top: 3px solid var(--accent-blue); /* Top border instead for active state */
-        background: rgba(59, 130, 246, 0.1);
+        background: rgba(59, 130, 246, 0.15);
     }
     
     .content-area { 
