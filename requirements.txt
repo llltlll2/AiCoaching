@@ -5,3 +5,6 @@ django-cors-headers
 python-dotenv
 gspread
 google-api-python-client
+apscheduler
+plyer
+gunicorn
