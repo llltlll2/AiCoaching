@@ -10,7 +10,7 @@ echo "=================================================="
 
 # 1. Update and install dependencies
 echo "[1/6] Installing system dependencies..."
-sudo apt update && sudo apt upgrade -y
+sudo apt update
 sudo apt install python3-pip python3-venv python3-dev sqlite3 nginx git curl -y
 
 # 2. Setup deploy directory
