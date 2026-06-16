@@ -24,7 +24,8 @@ sudo chown -R "${CURRENT_USER}":www-data "${DEPLOY_DIR}"
 if [ -d "${DEPLOY_DIR}/.git" ]; then
     echo "Directory already cloned. Pulling latest updates..."
     cd "${DEPLOY_DIR}"
-    git pull origin main
+    git fetch origin
+    git reset --hard origin/main
 else
     echo "Cloning repository..."
     git clone https://github.com/llltlll2/AiCoaching.git "${DEPLOY_DIR}"
@@ -82,6 +83,7 @@ echo "[6/6] Setting up system services..."
 # Gunicorn
 sudo cp "${DEPLOY_DIR}/backend/deploy/gunicorn.service" /etc/systemd/system/aicoaching.service
 sudo sed -i "s/User=ubuntu/User=${CURRENT_USER}/g" /etc/systemd/system/aicoaching.service
+sudo sed -i 's/\r//g' /etc/systemd/system/aicoaching.service
 sudo systemctl daemon-reload
 sudo systemctl start aicoaching
 sudo systemctl enable aicoaching
@@ -89,6 +91,7 @@ sudo systemctl enable aicoaching
 # Nginx
 sudo cp "${DEPLOY_DIR}/backend/deploy/nginx.conf" /etc/nginx/sites-available/aicoaching
 sudo sed -i "s/YOUR_DOMAIN_OR_IP/${user_domain}/g" /etc/nginx/sites-available/aicoaching
+sudo sed -i 's/\r//g' /etc/nginx/sites-available/aicoaching
 
 # Link and enable site in Nginx
 if [ ! -f /etc/nginx/sites-enabled/aicoaching ]; then
