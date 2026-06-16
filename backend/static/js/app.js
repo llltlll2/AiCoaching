@@ -766,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
         playConsultBtn.addEventListener('click', () => {
             faustAudio.volume = parseFloat(localStorage.getItem('faust_volume') || 0.5);
             faustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
-            faustAudio.play().catch(e => alert('音声の再生に失敗しました。VOICEVOXが起動しているか確認してください。'));
+            faustAudio.play().catch(e => alert('音声の再生に失敗しました。'));
         });
     }
 
@@ -885,7 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('play-coaching-audio').addEventListener('click', () => {
         faustAudio.volume = parseFloat(localStorage.getItem('faust_volume') || 0.5);
         faustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
-        faustAudio.play().catch(e => alert('音声の再生に失敗しました。VOICEVOXが起動しているか確認してください。'));
+        faustAudio.play().catch(e => alert('音声の再生に失敗しました。'));
     });
 
     // Daily Chat Follow-up
@@ -1174,7 +1174,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('play-quiz-audio').addEventListener('click', () => {
         faustAudio.volume = parseFloat(localStorage.getItem('faust_volume') || 0.5);
         faustAudio.src = '/static/current_coaching.wav?t=' + new Date().getTime();
-        faustAudio.play().catch(e => alert('音声の再生に失敗しました。VOICEVOXが起動しているか確認してください。'));
+        faustAudio.play().catch(e => alert('音声の再生に失敗しました。'));
     });
 
     // Quiz Chat Follow-up
