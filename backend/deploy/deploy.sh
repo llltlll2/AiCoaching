@@ -68,7 +68,7 @@ ALLOWED_HOSTS="${user_domain},localhost,127.0.0.1"
 EOF
 else
     echo ".env file already exists. Skipping creation."
-    user_domain=$(grep "ALLOWED_HOSTS" "${ENV_FILE}" | cut -d'"' -f2 | cut -d',' -f1 | tr -d '\r\n' | xargs)
+    user_domain=$(grep "^ALLOWED_HOSTS" "${ENV_FILE}" | head -n 1 | cut -d'"' -f2 | cut -d',' -f1 | tr -d '\r\n' | xargs)
     if [ -z "${user_domain}" ]; then
         user_domain=$(curl -s https://ipinfo.io/ip | tr -d '\r\n')
         if [ -z "${user_domain}" ]; then
