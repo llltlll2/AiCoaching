@@ -66,8 +66,6 @@ from django.shortcuts import render
 def frontend_view(request):
     return render(request, 'index.html')
 
-# VOICEVOX APIの基本URL (ローカル環境想定)
-VOICEVOX_URL = "http://localhost:50021"
 
 @csrf_exempt
 def study_coaching_hub(request):
@@ -529,27 +527,44 @@ def study_coaching_hub(request):
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
 def trigger_voicevox(text: str, speaker_id: int = 47):
-    """VOICEVOX ENGINEを叩いてローカルPCで音声を再生する内部関数"""
+    """Trigger VOICEVOX via public Web API (TTS Quest)"""
     try:
-        # 音声合成用クエリの作成 (指定されたspeaker_idを使用)
-        res_query = requests.post(f"{VOICEVOX_URL}/audio_query", params={"text": text, "speaker": speaker_id}, timeout=5)
-        query_data = res_query.json()
+        api_url = "https://api.tts.quest/v3/voicevox/synthesis"
+        params = {
+            "text": text,
+            "speaker": speaker_id
+        }
+        api_key = os.environ.get("TTS_QUEST_API_KEY")
+        if api_key:
+            params["key"] = api_key
+            
+        print(f"VOICEVOX WebAPI request: '{text[:15]}...' (Speaker: {speaker_id})")
+        res = requests.get(api_url, params=params, timeout=10)
+        res.raise_for_status()
+        res_data = res.json()
         
-        # 音声バイナリの生成
-        res_synthesis = requests.post(f"{VOICEVOX_URL}/synthesis", params={"speaker": speaker_id}, data=json.dumps(query_data), timeout=10)
+        if not res_data.get("success"):
+            print(f"VOICEVOX WebAPI error: {res_data.get('errorMessage')}")
+            return
+            
+        wav_url = res_data.get("wavDownloadUrl")
+        if not wav_url:
+            print("VOICEVOX WebAPI error: wavDownloadUrl not found.")
+            return
+            
+        print(f"Downloading audio file: {wav_url}")
+        audio_res = requests.get(wav_url, timeout=30)
+        audio_res.raise_for_status()
         
-        # ローカルの static フォルダに保存してフロントエンドから再生できるようにする
         static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
         os.makedirs(static_dir, exist_ok=True)
         wav_path = os.path.join(static_dir, "current_coaching.wav")
         
         with open(wav_path, "wb") as f:
-            f.write(res_synthesis.content)
-            
-        # 注意：クラウド環境(Cloud Run)ではローカル再生不可のため、
-        # 必要に応じてWAVのバイナリ、あるいはURLをGAS側に返却してクライアント側で再生させる設計に切り替える。
+            f.write(audio_res.content)
+        print("Audio file saved successfully.")
     except Exception as e:
-        print(f"VOICEVOX連携エラー: {e}")
+        print(f"VOICEVOX error: {e}")
 
 
 import logging
