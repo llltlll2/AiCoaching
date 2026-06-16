@@ -556,7 +556,13 @@ def trigger_voicevox(text: str, speaker_id: int = 47):
         audio_res = requests.get(wav_url, timeout=30)
         audio_res.raise_for_status()
         
-        static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
+        from django.conf import settings
+        # Use STATIC_ROOT in production to let Nginx serve it, fallback to static directory in development
+        if getattr(settings, 'STATIC_ROOT', None):
+            static_dir = str(settings.STATIC_ROOT)
+        else:
+            static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
+            
         os.makedirs(static_dir, exist_ok=True)
         wav_path = os.path.join(static_dir, "current_coaching.wav")
         
