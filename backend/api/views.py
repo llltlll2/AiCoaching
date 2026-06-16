@@ -553,8 +553,29 @@ def trigger_voicevox(text: str, speaker_id: int = 47, message_id: str = None):
             return
             
         print(f"Downloading audio file: {wav_url}")
-        audio_res = requests.get(wav_url, timeout=60)
-        audio_res.raise_for_status()
+        
+        # Poll the wav_url until it is ready (returns 200) or timeout (TTS Quest generates asynchronously)
+        max_retries = 15
+        retry_delay = 2  # seconds
+        audio_res = None
+        
+        for attempt in range(max_retries):
+            try:
+                audio_res = requests.get(wav_url, timeout=10)
+                if audio_res.status_code == 200:
+                    break
+                elif audio_res.status_code == 404:
+                    print(f"Audio file not ready yet (404). Waiting {retry_delay}s... (Attempt {attempt+1}/{max_retries})")
+                    time.sleep(retry_delay)
+                else:
+                    audio_res.raise_for_status()
+            except Exception as e:
+                print(f"WAV download attempt {attempt+1} failed: {e}")
+                time.sleep(retry_delay)
+                
+        if not audio_res or audio_res.status_code != 200:
+            print("Failed to download audio file: timeout or download error.")
+            return
         
         from django.conf import settings
         if getattr(settings, 'STATIC_ROOT', None):
