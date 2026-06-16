@@ -9,7 +9,7 @@ WorkingDirectory=/var/www/aicoaching/backend
 ExecStart=/var/www/aicoaching/venv/bin/gunicorn \
           --access-logfile - \
           --workers 3 \
-          --bind unix:/run/aicoaching.sock \
+          --bind unix:/var/www/aicoaching/aicoaching.sock \
           config.wsgi:application
 
 [Install]
